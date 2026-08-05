@@ -1,6 +1,9 @@
 import {
+  GitMergeIcon,
+  GitPullRequestClosedIcon,
   GitPullRequestDraftIcon,
   GitPullRequestIcon,
+  IssueClosedIcon,
   IssueOpenedIcon,
 } from "@primer/octicons-react";
 import { Button, IssueLabelToken, Label, type LabelProps, RelativeTime } from "@primer/react";
@@ -32,7 +35,19 @@ interface StateIconProps {
 
 const StateIcon: React.FC<StateIconProps> = ({ item }) => {
   if (item.type === "issue") {
-    return <IssueOpenedIcon className={styles.stateOpen} />;
+    return item.state === "OPEN" ? (
+      <IssueOpenedIcon className={styles.stateOpen} />
+    ) : (
+      <IssueClosedIcon className={styles.stateDone} />
+    );
+  }
+
+  if (item.state === "MERGED") {
+    return <GitMergeIcon className={styles.stateDone} />;
+  }
+
+  if (item.state === "CLOSED") {
+    return <GitPullRequestClosedIcon className={styles.stateClosed} />;
   }
 
   if (item.isDraft) {
@@ -44,7 +59,15 @@ const StateIcon: React.FC<StateIconProps> = ({ item }) => {
 
 const stateTitleOf = (item: TriageItem): string => {
   if (item.type === "issue") {
-    return "Open issue";
+    return item.state === "OPEN" ? "Open issue" : "Closed issue";
+  }
+
+  if (item.state === "MERGED") {
+    return "Merged pull request";
+  }
+
+  if (item.state === "CLOSED") {
+    return "Closed pull request";
   }
 
   if (item.isDraft) {

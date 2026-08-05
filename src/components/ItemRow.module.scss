@@ -42,6 +42,14 @@
   color: var(--fgColor-muted);
 }
 
+.stateClosed {
+  color: var(--fgColor-closed);
+}
+
+.stateDone {
+  color: var(--fgColor-done);
+}
+
 .main {
   flex: 1;
   min-width: 0;

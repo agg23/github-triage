@@ -1,4 +1,4 @@
-import { and, desc, eq, like, SQL, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../db";
 import { items } from "../db/schema";
@@ -24,7 +24,16 @@ itemRoutes.get("/items", (context) => {
     conditions.push(eq(items.type, query.type));
   }
 
-  if (query.state) {
+  if (query.assignee) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${items.assignees}) WHERE json_each.value = ${query.assignee})`,
+    );
+  }
+
+  if (query.state === "closed") {
+    // GitHub's "is:closed" means both closed or merged
+    conditions.push(inArray(items.state, ["CLOSED", "MERGED"]));
+  } else if (query.state) {
     conditions.push(eq(items.state, query.state.toUpperCase() as "OPEN"));
   }
 

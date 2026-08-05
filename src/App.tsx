@@ -1,6 +1,15 @@
-import { EyeIcon, GraphIcon, IssueOpenedIcon, RepoIcon, SyncIcon } from "@primer/octicons-react";
+import {
+  EyeIcon,
+  GitPullRequestIcon,
+  GraphIcon,
+  IssueOpenedIcon,
+  PersonIcon,
+  RepoIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
 import { Button, Flash, RelativeTime, UnderlineNav } from "@primer/react";
 import { useMemo, useState } from "react";
+import { MineView } from "./components/MineView";
 import { QueuePage } from "./components/QueuePage";
 import { SourcesView } from "./components/SourcesView";
 import { StatsView } from "./components/StatsView";
@@ -13,6 +22,8 @@ import styles from "./App.module.scss";
 
 const TABS = [
   { id: "queue", label: "Queue", icon: IssueOpenedIcon },
+  { id: "authored", label: "Authored PRs", icon: GitPullRequestIcon },
+  { id: "assigned", label: "Assigned", icon: PersonIcon },
   { id: "stats", label: "Stats", icon: GraphIcon },
   { id: "views", label: "Views", icon: EyeIcon },
   { id: "sources", label: "Sources", icon: RepoIcon },
@@ -55,6 +66,8 @@ export const App: React.FC = () => {
         onWake={triage.wake}
       />
     ),
+    authored: <MineView sources={triage.sources} section="authored" />,
+    assigned: <MineView sources={triage.sources} section="assigned" />,
     stats: <StatsView />,
     views: <ViewsView views={triage.views} onChanged={triage.reload} />,
     sources: <SourcesView sources={triage.sources} onChanged={triage.reload} />,
