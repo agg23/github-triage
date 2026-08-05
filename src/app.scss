@@ -1,0 +1,23 @@
+// Global chrome. Colors from Primer's primitives tokens
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--bgColor-default);
+  color: var(--fgColor-default);
+}
+
+.shell-flash {
+  margin-bottom: 16px;
+}
+
+.loading-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--fgColor-muted);
+}

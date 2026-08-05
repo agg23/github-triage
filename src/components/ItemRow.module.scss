@@ -1,0 +1,115 @@
+.item {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--borderColor-muted);
+
+  &:first-child {
+    border-top: 0;
+  }
+
+  &:hover {
+    background: var(--bgColor-muted);
+  }
+
+  &:hover .actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.muted {
+  opacity: 0.55;
+  transition: opacity 0.1s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  height: 21px;
+}
+
+.stateOpen {
+  color: var(--fgColor-open);
+}
+
+.stateDraft {
+  color: var(--fgColor-muted);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.title {
+  font-weight: 600;
+  color: var(--fgColor-default);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--fgColor-accent);
+    text-decoration: underline;
+  }
+}
+
+.repo {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--fgColor-muted);
+  font-size: 12px;
+  font-family: var(--fontStack-monospace, ui-monospace, monospace);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fgColor-muted);
+
+  a.user {
+    color: var(--fgColor-muted);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--fgColor-accent);
+      text-decoration: underline;
+    }
+  }
+}
+
+.metaSep {
+  margin: 0 2px;
+}
+
+.actions {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  background: var(--bgColor-muted);
+  border-radius: 6px;
+}
+
+.actionsVisible {
+  opacity: 1;
+  pointer-events: auto;
+}

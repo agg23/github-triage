@@ -1,0 +1,46 @@
+{
+  "name": "triage",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "start": "tsx server/index.ts",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.12",
+    "@primer/octicons-react": "^19.32.0",
+    "@primer/primitives": "^11.10.0",
+    "@primer/react": "^38.34.0",
+    "better-sqlite3": "^13.0.2",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.32",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-is": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/react-is": "^19.2.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "drizzle-kit": "^0.31.10",
+    "sass": "^1.102.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.18.20": true,
+    "esbuild@0.28.1": true,
+    "better-sqlite3@13.0.2": true
+  }
+}

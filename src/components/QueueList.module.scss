@@ -1,0 +1,63 @@
+.listbox {
+  border: 1px solid var(--borderColor-default);
+  border-radius: 6px;
+  background: var(--bgColor-default);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--bgColor-muted);
+  border-bottom: 1px solid var(--borderColor-default);
+  border-radius: 6px 6px 0 0;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--fgColor-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--fgColor-default);
+  }
+
+  &.active {
+    color: var(--fgColor-default);
+    font-weight: 600;
+  }
+}
+
+.actions {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.sorting {
+  display: flex;
+}
+
+.counter {
+  min-width: 26px;
+  text-align: center;
+}

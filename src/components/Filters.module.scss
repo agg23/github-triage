@@ -1,0 +1,28 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.search {
+  flex: 1;
+  min-width: 260px;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.button {
+  color: var(--fgColor-muted);
+  font-weight: 400;
+}
+
+.buttonActive {
+  color: var(--fgColor-accent);
+}
