@@ -7,7 +7,7 @@ export type BucketId = (typeof BUCKET_ORDER)[number];
 
 export type ForMeReason = "yours" | "review requested" | "assigned" | "involved";
 
-export type SortId = "recent" | "priority";
+export type SortId = "recent" | "created" | "priority";
 
 export interface Filters {
   query: string;

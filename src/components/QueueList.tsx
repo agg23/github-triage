@@ -42,7 +42,8 @@ const TAB_METADATA: Record<QueueTab, TabMetadata> = {
 };
 
 const SORT_LABEL: Record<SortId, string> = {
-  recent: "Most recent",
+  recent: "Last updated",
+  created: "Created",
   priority: "Source priority",
 };
 

@@ -87,10 +87,15 @@ export const groupByBucket = (
     }
   }
 
-  const compare = (first: TriageItem, second: TriageItem) =>
-    sort === "priority" && first.priority !== second.priority
-      ? second.priority - first.priority
-      : second.lastActivityAt.localeCompare(first.lastActivityAt);
+  const compare = (first: TriageItem, second: TriageItem) => {
+    if (sort === "priority" && first.priority !== second.priority) {
+      return second.priority - first.priority;
+    } else if (sort === "created") {
+      return second.createdAt.localeCompare(first.createdAt);
+    } else {
+      return second.lastActivityAt.localeCompare(first.lastActivityAt);
+    }
+  };
 
   for (const list of byBucket.values()) {
     list.sort(compare);
