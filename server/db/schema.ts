@@ -1,6 +1,12 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { SOURCE_KINDS, type ActionKind, type ItemLabel, type ViewRule } from "../../shared/types";
+import {
+  SOURCE_KINDS,
+  type ActionKind,
+  type DetailComment,
+  type ItemLabel,
+  type ViewRule,
+} from "../../shared/types";
 
 export const sources = sqliteTable("sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -46,6 +52,19 @@ export const items = sqliteTable("items", {
   lastActorType: text("last_actor_type").notNull(),
   lastActivityAt: text("last_activity_at").notNull(),
   lastActionKind: text("last_action_kind").$type<ActionKind>(),
+  fetchedAt: text("fetched_at").notNull(),
+});
+
+export const itemDetails = sqliteTable("item_details", {
+  itemId: text("item_id")
+    .primaryKey()
+    .references(() => items.id, { onDelete: "cascade" }),
+  bodyHTML: text("body_html").notNull(),
+  comments: text("comments", { mode: "json" }).notNull().$type<DetailComment[]>(),
+  commentCount: integer("comment_count").notNull().default(0),
+  additions: integer("additions"),
+  deletions: integer("deletions"),
+  changedFiles: integer("changed_files"),
   fetchedAt: text("fetched_at").notNull(),
 });
 

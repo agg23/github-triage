@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "../shared/constants";
-import type { SyncResult, SyncStats } from "../shared/types";
+import type { ItemDetail, SyncResult, SyncStats } from "../shared/types";
 import { db } from "./db";
-import { items, sources } from "./db/schema";
-import { fetchSourceUpdatedSince } from "./github/fetch";
+import { itemDetails, items, sources } from "./db/schema";
+import { fetchDetails, fetchSourceUpdatedSince } from "./github/fetch";
 
 let syncing = false;
 
@@ -18,7 +18,42 @@ const DEEP_RESYNC_EVERY_MS = HOUR_MS;
 const DEEP_LOOKBACK_MS = DAY_MS;
 const MANUAL_LOOKBACK_MS = 2 * HOUR_MS;
 
+/** How many existing items missing content will be fetched per run */
+const DETAIL_BACKFILL_LIMIT = 200;
+
 const lastDeepSyncAt = new Map<number, number>();
+
+const upsertDetails = (details: ItemDetail[]) => {
+  for (const detail of details) {
+    db.insert(itemDetails)
+      .values(detail)
+      .onConflictDoUpdate({ target: itemDetails.itemId, set: { ...detail, itemId: undefined } })
+      .run();
+  }
+};
+
+/**
+ * Items cached before we started storing content have no detail row, and a preview can't show
+ * anything for them. Backfill that content
+ */
+const backfillDetails = async (): Promise<number> => {
+  const missing = db
+    .select({ id: items.id })
+    .from(items)
+    .leftJoin(itemDetails, eq(itemDetails.itemId, items.id))
+    .where(isNull(itemDetails.itemId))
+    .limit(DETAIL_BACKFILL_LIMIT)
+    .all();
+
+  if (missing.length === 0) {
+    return 0;
+  }
+
+  const details = await fetchDetails(missing.map((row) => row.id));
+  upsertDetails(details);
+
+  return details.length;
+};
 
 export const syncSource = async (
   source: typeof sources.$inferSelect,
@@ -49,7 +84,11 @@ export const syncSource = async (
   const since = new Date(sinceMs).toISOString();
   const scope =
     source.kind === "repo" ? `${source.owner}/${source.repo}` : `${source.kind}:${source.owner}`;
-  const { items: fetched, ...stats } = await fetchSourceUpdatedSince(source, since, (count) =>
+  const {
+    items: fetched,
+    details,
+    ...stats
+  } = await fetchSourceUpdatedSince(source, since, (count) =>
     console.log(`  [sync] ${scope}: ${count} items so far`),
   );
 
@@ -59,6 +98,8 @@ export const syncSource = async (
       .onConflictDoUpdate({ target: items.id, set: { ...item, id: undefined } })
       .run();
   }
+
+  upsertDetails(details);
 
   db.update(sources).set({ lastSyncedAt: startedAt }).where(eq(sources.id, source.id)).run();
 
@@ -93,6 +134,16 @@ export const syncAll = async (manual = false): Promise<SyncResult> => {
         console.error(`[sync] FAILED ${message}`);
         errors.push(message);
       }
+    }
+
+    try {
+      const filled = await backfillDetails();
+
+      if (filled > 0) {
+        console.log(`[sync] backfilled content for ${filled} items`);
+      }
+    } catch (error) {
+      errors.push(`detail backfill: ${error instanceof Error ? error.message : String(error)}`);
     }
   } finally {
     syncing = false;

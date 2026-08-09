@@ -1,7 +1,15 @@
-import type { Item, Source, SourceKind, SyncStats } from "../../shared/types";
+import type { Item, ItemDetail, Source, SourceKind, SyncStats } from "../../shared/types";
 import { GitHubError, fetchGraphQl, fetchRestSearch, REST_PER_PAGE } from "./client";
-import { toItem } from "./item";
-import { CONNECTIONS, fieldsFor, type NodesResponse, type RepositoryResponse } from "./schema";
+import { toDetail, toItem } from "./item";
+import {
+  CONNECTIONS,
+  DETAIL_FIELDS,
+  fieldsFor,
+  PR_DETAIL_FIELDS,
+  type DetailNodesResponse,
+  type NodesResponse,
+  type RepositoryResponse,
+} from "./schema";
 
 const PAGE_SIZE = 50;
 
@@ -12,6 +20,8 @@ export type OwnerKind = Exclude<SourceKind, "repo">;
 
 export interface FetchPage {
   items: Item[];
+  /** Parallel to `items` */
+  details: ItemDetail[];
   rateLimitRemaining: number | undefined;
   pages: number;
 }
@@ -27,6 +37,7 @@ export const fetchRepoUpdatedSince = async (
   onPage?: OnPage,
 ): Promise<FetchPage> => {
   const fetched: Item[] = [];
+  const details: ItemDetail[] = [];
   let rateLimitRemaining: number | undefined = undefined;
   let pages = 0;
 
@@ -71,6 +82,7 @@ export const fetchRepoUpdatedSince = async (
         }
 
         fetched.push(toItem(node, connection === "pullRequests", sourceId));
+        details.push(toDetail(node));
       }
       onPage?.(fetched.length);
 
@@ -82,7 +94,7 @@ export const fetchRepoUpdatedSince = async (
     }
   }
 
-  return { items: fetched, rateLimitRemaining, pages };
+  return { items: fetched, details, rateLimitRemaining, pages };
 };
 
 interface SearchResult {
@@ -140,6 +152,7 @@ const hydrateNodes = async (ids: string[], sourceId: number): Promise<FetchPage>
     }
   `;
   const fetched: Item[] = [];
+  const details: ItemDetail[] = [];
   let rateLimitRemaining: number | undefined = undefined;
   let pages = 0;
 
@@ -151,11 +164,12 @@ const hydrateNodes = async (ids: string[], sourceId: number): Promise<FetchPage>
     for (const node of data.nodes ?? []) {
       if (node?.__typename) {
         fetched.push(toItem(node, node.__typename === "PullRequest", sourceId));
+        details.push(toDetail(node));
       }
     }
   }
 
-  return { items: fetched, rateLimitRemaining, pages };
+  return { items: fetched, details, rateLimitRemaining, pages };
 };
 
 export const fetchOwnerUpdatedSince = async (
@@ -181,8 +195,37 @@ export const fetchOwnerUpdatedSince = async (
   return { ...hydrated, pages: hydrated.pages + requestCount };
 };
 
+/** Content for items already in the cache, without re-fetching everything else about them */
+export const fetchDetails = async (ids: string[]): Promise<ItemDetail[]> => {
+  const query = /* GraphQL */ `
+    query ($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        __typename
+        ... on Issue { ${DETAIL_FIELDS} }
+        ... on PullRequest { ${DETAIL_FIELDS} ${PR_DETAIL_FIELDS} }
+      }
+    }
+  `;
+  const details: ItemDetail[] = [];
+
+  for (let index = 0; index < ids.length; index += PAGE_SIZE) {
+    const data = await fetchGraphQl<DetailNodesResponse>(query, {
+      ids: ids.slice(index, index + PAGE_SIZE),
+    });
+
+    for (const node of data.nodes ?? []) {
+      if (node?.__typename) {
+        details.push(toDetail(node));
+      }
+    }
+  }
+
+  return details;
+};
+
 export interface SourceFetch extends SyncStats {
   items: Item[];
+  details: ItemDetail[];
 }
 
 export const fetchSourceUpdatedSince = async (
@@ -205,5 +248,6 @@ export const fetchSourceUpdatedSince = async (
     pages: result.pages,
     rateLimitRemaining: result.rateLimitRemaining,
     items: result.items,
+    details: result.details,
   };
 };

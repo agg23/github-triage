@@ -13,6 +13,102 @@ body {
   margin-bottom: 16px;
 }
 
+// Styles GitHub's rendered bodyHTML. Global to allow the popup children to reach these rules
+.markdown-body {
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p,
+  ul,
+  ol,
+  pre,
+  blockquote,
+  table,
+  details {
+    margin: 0 0 8px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 12px 0 6px;
+    font-size: 14px;
+  }
+
+  ul,
+  ol {
+    padding-left: 20px;
+  }
+
+  a {
+    color: var(--fgColor-accent);
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  code {
+    padding: 0.15em 0.35em;
+    font-size: 92%;
+    font-family: var(--fontStack-monospace, ui-monospace, monospace);
+    background: var(--bgColor-neutral-muted);
+    border-radius: 4px;
+  }
+
+  pre {
+    padding: 8px;
+    overflow-x: auto;
+    background: var(--bgColor-muted);
+    border-radius: 6px;
+
+    code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  blockquote {
+    padding-left: 8px;
+    border-left: 3px solid var(--borderColor-muted);
+    color: var(--fgColor-muted);
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 4px 8px;
+      border: 1px solid var(--borderColor-muted);
+    }
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--borderColor-muted);
+  }
+
+  // GitHub emits a bullet-less li for checklists
+  .task-list-item {
+    list-style: none;
+  }
+}
+
 .loading-center {
   display: flex;
   flex-direction: column;

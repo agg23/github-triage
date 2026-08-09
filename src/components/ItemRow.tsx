@@ -9,6 +9,7 @@ import {
 import { Button, IssueLabelToken, Label, type LabelProps, RelativeTime } from "@primer/react";
 import type { ItemState } from "../../shared/types";
 import type { ActorClass, ForMeReason, SnoozeChoice, TriageItem } from "../types";
+import { ItemPreview } from "./ItemPreview";
 import { SnoozeActions } from "./SnoozeMenu";
 import styles from "./ItemRow.module.scss";
 
@@ -27,13 +28,13 @@ const FOR_ME_REASONS: Record<ForMeReason, ForMeBadge> = {
   },
 };
 
-const MAX_LABELS = 8;
+export const MAX_LABELS = 8;
 
 interface StateIconProps {
   item: TriageItem;
 }
 
-const StateIcon: React.FC<StateIconProps> = ({ item }) => {
+export const StateIcon: React.FC<StateIconProps> = ({ item }) => {
   if (item.type === "issue") {
     return item.state === "OPEN" ? (
       <IssueOpenedIcon className={styles.stateOpen} />
@@ -57,7 +58,7 @@ const StateIcon: React.FC<StateIconProps> = ({ item }) => {
   return <GitPullRequestIcon className={styles.stateOpen} />;
 };
 
-const stateTitleOf = (item: TriageItem): string => {
+export const stateTitleOf = (item: TriageItem): string => {
   if (item.type === "issue") {
     return item.state === "OPEN" ? "Open issue" : "Closed issue";
   }
@@ -112,7 +113,7 @@ interface ActorLinkProps {
   actorClass: ActorClass;
 }
 
-const ActorLink: React.FC<ActorLinkProps> = ({ login, actorClass }) => (
+export const ActorLink: React.FC<ActorLinkProps> = ({ login, actorClass }) => (
   <>
     <a
       className={styles.user}
@@ -149,9 +150,9 @@ export const ItemRow: React.FC<ItemRowProps> = ({ item, showRepo, onSnooze, onWa
 
       <div className={styles.main}>
         <div className={styles.titleLine}>
-          <a className={styles.title} href={item.url} target="_blank" rel="noreferrer">
+          <ItemPreview item={item} className={styles.title}>
             {item.title}
-          </a>
+          </ItemPreview>
           {item.labels.slice(0, MAX_LABELS).map((label) => (
             // "medium" (20px) matches Label size="small" so the pills align
             <IssueLabelToken

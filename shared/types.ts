@@ -52,6 +52,26 @@ export interface Item {
   fetchedAt: string;
 }
 
+export interface DetailComment {
+  author: string;
+  authorType: string;
+  createdAt: string;
+  bodyHTML: string;
+  reviewState?: string;
+  fileComments?: number;
+}
+
+export interface ItemDetail {
+  itemId: string;
+  bodyHTML: string;
+  comments: DetailComment[];
+  commentCount: number;
+  additions: number | null;
+  deletions: number | null;
+  changedFiles: number | null;
+  fetchedAt: string;
+}
+
 export const RULE_ACTIONS = ["filter", "show", "mute", "hide"] as const;
 export type RuleAction = (typeof RULE_ACTIONS)[number];
 

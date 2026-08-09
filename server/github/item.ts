@@ -1,5 +1,17 @@
-import type { ActionKind, Item, ItemGitHubState } from "../../shared/types";
-import type { Actor, RawNode } from "./schema";
+import type {
+  ActionKind,
+  DetailComment,
+  Item,
+  ItemDetail,
+  ItemGitHubState,
+} from "../../shared/types";
+import {
+  DETAIL_COMMENTS,
+  type Actor,
+  type RawDetailNode,
+  type RawNode,
+  type RawReview,
+} from "./schema";
 
 interface ItemEvent {
   actor: Actor | null;
@@ -41,6 +53,47 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
 
   return events.sort((first, second) => first.at.localeCompare(second.at));
 };
+
+const reviewBody = (review: RawReview): string =>
+  review.bodyHTML || review.comments?.nodes[0]?.bodyHTML || "";
+
+const reviewsAsComments = (node: RawDetailNode): DetailComment[] =>
+  (node.reviews?.nodes ?? []).flatMap((review) =>
+    review.submittedAt
+      ? [
+          {
+            author: review.author?.login ?? "ghost",
+            authorType: review.author?.__typename ?? "User",
+            createdAt: review.submittedAt,
+            bodyHTML: reviewBody(review),
+            reviewState: review.state,
+            fileComments: review.comments?.totalCount ?? 0,
+          },
+        ]
+      : [],
+  );
+
+export const toDetail = (node: RawDetailNode): ItemDetail => ({
+  itemId: node.id,
+  bodyHTML: node.bodyHTML ?? "",
+  comments: [
+    ...node.comments.nodes.map((comment) => ({
+      author: comment.author?.login ?? "ghost",
+      authorType: comment.author?.__typename ?? "User",
+      createdAt: comment.createdAt,
+      bodyHTML: comment.bodyHTML ?? "",
+    })),
+    ...reviewsAsComments(node),
+  ]
+    .sort((first, second) => first.createdAt.localeCompare(second.createdAt))
+    .slice(-DETAIL_COMMENTS),
+  commentCount:
+    (node.comments.totalCount ?? node.comments.nodes.length) + (node.reviews?.totalCount ?? 0),
+  additions: node.additions ?? null,
+  deletions: node.deletions ?? null,
+  changedFiles: node.changedFiles ?? null,
+  fetchedAt: new Date().toISOString(),
+});
 
 export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number): Item => {
   const events = eventsOf(node);

@@ -1,5 +1,6 @@
 import type {
   Item,
+  ItemDetail,
   ItemState,
   Source,
   SourceKind,
@@ -53,6 +54,7 @@ const statePath = (id: string) => `/items/${encodeURIComponent(id)}/state`;
 export const api = {
   items: (params: Record<string, string> = {}) =>
     request<Item[]>(`/items?${new URLSearchParams(params)}`),
+  itemDetail: (id: string) => request<ItemDetail>(`/items/${encodeURIComponent(id)}/detail`),
   sources: () => request<SourceWithCount[]>("/sources"),
   addSource: (body: NewSource) => send<Source>("/sources", "POST", body),
   deleteSource: (id: number) => request<Source>(`/sources/${id}`, { method: "DELETE" }),

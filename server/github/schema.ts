@@ -1,13 +1,36 @@
 export const CONNECTIONS = ["issues", "pullRequests"] as const;
 export type Connection = (typeof CONNECTIONS)[number];
 
+/** How many comments in a preview */
+export const DETAIL_COMMENTS = 5;
+
+export const DETAIL_FIELDS = `
+  id bodyHTML
+  comments(last: ${DETAIL_COMMENTS}) {
+    totalCount
+    nodes { author { login __typename } createdAt bodyHTML }
+  }
+`;
+
+export const PR_DETAIL_FIELDS = `
+  additions deletions changedFiles
+  reviews(last: ${DETAIL_COMMENTS}) {
+    totalCount
+    nodes {
+      author { login __typename }
+      submittedAt state bodyHTML
+      comments(first: 1) { totalCount nodes { bodyHTML } }
+    }
+  }
+`;
+
 const ITEM_FIELDS = `
-  id number title url createdAt updatedAt closedAt
+  ${DETAIL_FIELDS}
+  number title url createdAt updatedAt closedAt
   author { login __typename }
   repository { nameWithOwner }
   labels(first: 20) { nodes { name color } }
   assignees(first: 10) { nodes { login } }
-  comments(last: 5) { nodes { author { login __typename } createdAt } }
   participants(first: 100) { nodes { login } }
 `;
 
@@ -15,9 +38,9 @@ export const ISSUE_FIELDS = `${ITEM_FIELDS} issueState: state`;
 
 export const PR_FIELDS = `
   ${ITEM_FIELDS}
+  ${PR_DETAIL_FIELDS}
   prState: state
   isDraft
-  reviews(last: 5) { nodes { author { login __typename } submittedAt } }
   latestReviews(first: 10) { nodes { author { login __typename } submittedAt } }
   reviewThreads(last: 15) {
     nodes {
@@ -36,6 +59,7 @@ export const fieldsFor = (connection: Connection): string =>
 
 export interface Connected<T> {
   nodes: T[];
+  totalCount?: number;
 }
 
 export interface Actor {
@@ -51,11 +75,19 @@ export interface RawLabel {
 export interface RawComment {
   author: Actor | null;
   createdAt: string;
+  bodyHTML?: string;
+}
+
+export interface RawReviewComment {
+  bodyHTML: string;
 }
 
 export interface RawReview {
   author: Actor | null;
-  submittedAt: string;
+  submittedAt: string | null;
+  state?: string;
+  bodyHTML?: string;
+  comments?: Connected<RawReviewComment>;
 }
 
 export interface RawReviewThread {
@@ -68,9 +100,20 @@ export interface RawReviewRequest {
   requestedReviewer: { login?: string } | null;
 }
 
-export interface RawNode {
-  __typename?: "Issue" | "PullRequest";
+export interface RawDetailNode {
+  __typename?: string;
   id: string;
+  bodyHTML: string;
+  comments: Connected<RawComment>;
+  // Pull requests only
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+  reviews?: Connected<RawReview>;
+}
+
+export interface RawNode extends RawDetailNode {
+  __typename?: "Issue" | "PullRequest";
   number: number;
   title: string;
   url: string;
@@ -84,9 +127,7 @@ export interface RawNode {
   repository: { nameWithOwner: string };
   labels: Connected<RawLabel>;
   assignees: Connected<{ login: string }>;
-  comments: Connected<RawComment>;
   participants: Connected<{ login: string }>;
-  reviews?: Connected<RawReview>;
   latestReviews?: Connected<RawReview>;
   reviewThreads?: Connected<RawReviewThread>;
   reviewRequests?: Connected<RawReviewRequest>;
@@ -115,4 +156,8 @@ export interface RepositoryResponse {
 export interface NodesResponse {
   rateLimit?: RateLimit;
   nodes: (RawNode | null)[] | null;
+}
+
+export interface DetailNodesResponse {
+  nodes: (RawDetailNode | null)[] | null;
 }

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, like, SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../db";
-import { items } from "../db/schema";
+import { itemDetails, items } from "../db/schema";
 
 const DEFAULT_QUERY_LIMIT = 200;
 const MAX_QUERY_LIMIT = 1000;
@@ -55,6 +55,17 @@ itemRoutes.get("/items", (context) => {
     .all();
 
   return context.json(rows);
+});
+
+itemRoutes.get("/items/:id/detail", (context) => {
+  const row = db
+    .select()
+    .from(itemDetails)
+    .where(eq(itemDetails.itemId, context.req.param("id")))
+    .get();
+
+  // Items synced before we started storing content have no detail row until their next update
+  return row ? context.json(row) : context.json({ error: "no cached content" }, 404);
 });
 
 itemRoutes.get("/stats-items", (context) => {
