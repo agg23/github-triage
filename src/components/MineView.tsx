@@ -1,10 +1,10 @@
-import { CheckIcon, GitPullRequestIcon, IssueOpenedIcon } from "@primer/octicons-react";
+import { CheckIcon, GitPullRequestIcon, IssueOpenedIcon, PersonIcon } from "@primer/octicons-react";
 import { ActionList, ActionMenu, Flash, Spinner } from "@primer/react";
 import { Blankslate } from "@primer/react/experimental";
 import { useEffect, useMemo, useState } from "react";
 import type { Item, ItemState } from "../../shared/types";
 import { api, type SourceWithCount } from "../api";
-import { CONFIG } from "../config";
+import { useSettings } from "../settings";
 import { enrich } from "../triage";
 import { ItemRow } from "./ItemRow";
 import listbox from "./QueueList.module.scss";
@@ -28,18 +28,18 @@ interface SectionMetadata {
   params: Record<string, string>;
 }
 
-const SECTION_METADATA: Record<MineSection, SectionMetadata> = {
+const sectionMetadata = (me: string): Record<MineSection, SectionMetadata> => ({
   authored: {
     openIcon: GitPullRequestIcon,
-    blurb: `Pull requests opened by ${CONFIG.me}`,
-    params: { author: CONFIG.me, type: "pr" },
+    blurb: `Pull requests opened by ${me}`,
+    params: { author: me, type: "pr" },
   },
   assigned: {
     openIcon: IssueOpenedIcon,
-    blurb: `Issues and pull requests assigned to ${CONFIG.me}`,
-    params: { assignee: CONFIG.me },
+    blurb: `Issues and pull requests assigned to ${me}`,
+    params: { assignee: me },
   },
-};
+});
 
 interface MineViewProps {
   sources: SourceWithCount[];
@@ -47,6 +47,8 @@ interface MineViewProps {
 }
 
 export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
+  const { me } = useSettings();
+  const metadata = useMemo(() => sectionMetadata(me)[section], [me, section]);
   const [state, setState] = useState<StateFilter>("open");
   const [sort, setSort] = useState<MineSort>("updated");
   const [fetched, setFetched] = useState<Record<StateFilter, Item[]> | undefined>(undefined);
@@ -54,7 +56,11 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
 
   useEffect(() => {
     let cancelled = false;
-    const { params } = SECTION_METADATA[section];
+    const { params } = metadata;
+
+    if (!me) {
+      return;
+    }
 
     setFetched(undefined);
     setError(undefined);
@@ -77,7 +83,7 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
     return () => {
       cancelled = true;
     };
-  }, [section]);
+  }, [me, metadata]);
 
   const priorityBySource = useMemo(
     () => new Map(sources.map((source) => [source.id, source.priority])),
@@ -97,9 +103,25 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
       .sort((first, second) => timeOf(second).localeCompare(timeOf(first)));
   }, [fetched, state, sort, priorityBySource]);
 
-  const OpenIcon = SECTION_METADATA[section].openIcon;
+  const OpenIcon = metadata.openIcon;
   const stateTab = (stateId: StateFilter) =>
     stateId === state ? `${listbox.tab} ${listbox.active}` : listbox.tab;
+
+  if (!me) {
+    return (
+      <main>
+        <Blankslate>
+          <Blankslate.Visual>
+            <PersonIcon size={24} />
+          </Blankslate.Visual>
+          <Blankslate.Heading>No account set</Blankslate.Heading>
+          <Blankslate.Description>
+            Set your GitHub username in Settings.
+          </Blankslate.Description>
+        </Blankslate>
+      </main>
+    );
+  }
 
   return (
     <main>
@@ -166,7 +188,7 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
               </Blankslate.Visual>
               <Blankslate.Heading>Nothing here</Blankslate.Heading>
               <Blankslate.Description>
-                {`${SECTION_METADATA[section].blurb} (${state})`}
+                {`${metadata.blurb} (${state})`}
               </Blankslate.Description>
             </Blankslate>
           ) : (

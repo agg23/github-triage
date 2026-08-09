@@ -1,9 +1,9 @@
 import { eq, isNull } from "drizzle-orm";
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "../shared/constants";
-import type { ItemDetail, SyncResult, SyncStats } from "../shared/types";
+import type { Item, ItemDetail, SyncResult, SyncStats } from "../shared/types";
 import { db } from "./db";
 import { itemDetails, items, sources } from "./db/schema";
-import { fetchDetails, fetchSourceUpdatedSince } from "./github/fetch";
+import { fetchDetails, fetchSourceUpdatedSince, scopeOf } from "./github/fetch";
 
 let syncing = false;
 
@@ -31,6 +31,26 @@ const upsertDetails = (details: ItemDetail[]) => {
       .run();
   }
 };
+
+/**
+ * Write a single chunk of fetched GitHub data
+ */
+const writePage = (fetched: Item[], details: ItemDetail[]) =>
+  db.transaction((tx) => {
+    for (const item of fetched) {
+      tx.insert(items)
+        .values(item)
+        .onConflictDoUpdate({ target: items.id, set: { ...item, id: undefined } })
+        .run();
+    }
+
+    for (const detail of details) {
+      tx.insert(itemDetails)
+        .values(detail)
+        .onConflictDoUpdate({ target: itemDetails.itemId, set: { ...detail, itemId: undefined } })
+        .run();
+    }
+  });
 
 /**
  * Items cached before we started storing content have no detail row, and a preview can't show
@@ -82,24 +102,22 @@ export const syncSource = async (
   }
 
   const since = new Date(sinceMs).toISOString();
-  const scope =
-    source.kind === "repo" ? `${source.owner}/${source.repo}` : `${source.kind}:${source.owner}`;
-  const {
-    items: fetched,
-    details,
-    ...stats
-  } = await fetchSourceUpdatedSince(source, since, (count) =>
-    console.log(`  [sync] ${scope}: ${count} items so far`),
-  );
+  const scope = scopeOf(source);
+  let written = 0;
 
-  for (const item of fetched) {
-    db.insert(items)
-      .values(item)
-      .onConflictDoUpdate({ target: items.id, set: { ...item, id: undefined } })
-      .run();
-  }
+  const stats = await fetchSourceUpdatedSince(
+    source,
+    since,
+    (fetched, details) => {
+      writePage(fetched, details);
+      written += fetched.length;
+    },
+    (count) => console.log(`  [sync] ${scope}: ${count} items so far`),
+  ).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
 
-  upsertDetails(details);
+    throw new Error(`${message} (kept ${written} items fetched before it failed)`);
+  });
 
   db.update(sources).set({ lastSyncedAt: startedAt }).where(eq(sources.id, source.id)).run();
 

@@ -8,6 +8,27 @@ import {
   type ViewRule,
 } from "../../shared/types";
 
+/**
+ * The Settings table contains a single row with all config values
+ */
+export const settings = sqliteTable("settings", {
+  id: integer("id").primaryKey(),
+  githubToken: text("github_token"),
+  tokenLogin: text("token_login"),
+  me: text("me").notNull().default(""),
+  teamMembers: text("team_members", { mode: "json" })
+    .notNull()
+    .$type<string[]>()
+    .default(sql`'[]'`),
+  trustedContributors: text("trusted_contributors", { mode: "json" })
+    .notNull()
+    .$type<string[]>()
+    .default(sql`'[]'`),
+  bots: text("bots", { mode: "json" }).notNull().$type<string[]>().default(sql`'[]'`),
+  newWithinHours: integer("new_within_hours").notNull().default(24),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const sources = sqliteTable("sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   kind: text("kind", { enum: SOURCE_KINDS }).notNull(),

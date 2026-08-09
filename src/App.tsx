@@ -1,5 +1,6 @@
 import {
   EyeIcon,
+  GearIcon,
   GitPullRequestIcon,
   GraphIcon,
   IssueOpenedIcon,
@@ -11,6 +12,7 @@ import { Button, Flash, RelativeTime, UnderlineNav } from "@primer/react";
 import { useMemo, useState } from "react";
 import { MineView } from "./components/MineView";
 import { QueuePage } from "./components/QueuePage";
+import { SettingsView } from "./components/SettingsView";
 import { SourcesView } from "./components/SourcesView";
 import { StatsView } from "./components/StatsView";
 import { ViewsView } from "./components/ViewsView";
@@ -27,6 +29,7 @@ const TABS = [
   { id: "stats", label: "Stats", icon: GraphIcon },
   { id: "views", label: "Views", icon: EyeIcon },
   { id: "sources", label: "Sources", icon: RepoIcon },
+  { id: "settings", label: "Settings", icon: GearIcon },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
@@ -71,6 +74,7 @@ export const App: React.FC = () => {
     stats: <StatsView />,
     views: <ViewsView views={triage.views} onChanged={triage.reload} />,
     sources: <SourcesView sources={triage.sources} onChanged={triage.reload} />,
+    settings: <SettingsView onChanged={triage.reload} />,
   };
 
   return (
@@ -98,7 +102,7 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      <UnderlineNav aria-label="Sections" className={styles.nav}>
+      <UnderlineNav aria-label="Sections" className={styles.nav} hideIconsBreakpoint={null}>
         {TABS.map((navTab) => (
           <UnderlineNav.Item
             key={navTab.id}

@@ -2,17 +2,20 @@ import "./env";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import { GITHUB_TOKEN, PORT, SYNC_INTERVAL_MS } from "./env";
+import { PORT, SYNC_INTERVAL_MS } from "./env";
 import { itemRoutes } from "./routes/items";
+import { settingsRoutes } from "./routes/settings";
 import { snoozeRoutes } from "./routes/snooze";
 import { sourceRoutes } from "./routes/sources";
 import { syncRoutes } from "./routes/sync";
 import { viewRoutes } from "./routes/views";
+import { githubToken } from "./settings";
 import { syncAll } from "./sync";
 
 const app = new Hono();
 const api = new Hono();
 
+api.route("/", settingsRoutes);
 api.route("/", sourceRoutes);
 api.route("/", viewRoutes);
 api.route("/", snoozeRoutes);
@@ -26,8 +29,8 @@ app.use("/*", serveStatic({ root: "./dist" }));
 app.use("/*", serveStatic({ root: "./dist", path: "index.html" }));
 
 const pollLoop = async () => {
-  if (!GITHUB_TOKEN) {
-    console.warn("[poll] GITHUB_TOKEN not set, skipping scheduled sync");
+  if (!githubToken()) {
+    console.warn("[poll] No GitHub token, skipping scheduled sync");
 
     return;
   }

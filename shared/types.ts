@@ -72,6 +72,31 @@ export interface ItemDetail {
   fetchedAt: string;
 }
 
+export interface TriageSettings {
+  /** User's account name */
+  me: string;
+  /** Core team account names */
+  teamMembers: string[];
+  /** Trusted external contributor account names */
+  trustedContributors: string[];
+  /** Known bot account names */
+  bots: string[];
+  /** Items created within this many hours land in the New bucket */
+  newWithinHours: number;
+}
+
+/** Settings exposed to the browser */
+export interface Settings extends TriageSettings {
+  hasToken: boolean;
+  /** The account the token belonged to when it was saved */
+  tokenLogin: string | null;
+}
+
+export interface SettingsPatch extends Partial<TriageSettings> {
+  /** An empty string clears the stored token */
+  githubToken?: string;
+}
+
 export const RULE_ACTIONS = ["filter", "show", "mute", "hide"] as const;
 export type RuleAction = (typeof RULE_ACTIONS)[number];
 

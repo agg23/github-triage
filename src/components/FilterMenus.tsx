@@ -11,7 +11,7 @@ import {
   setWindowQuery,
   windowQuery,
 } from "../../shared/query";
-import { CONFIG } from "../config";
+import { useSettings } from "../settings";
 import { DEFAULT_FILTERS, type FilterOptions, type Filters } from "../types";
 import { FilterSelectPanel } from "./FilterSelectPanel";
 import styles from "./Filters.module.scss";
@@ -117,6 +117,7 @@ export const FilterMenus: React.FC<FilterMenusProps> = ({
   options,
   baselineQuery,
 }) => {
+  const { me } = useSettings();
   const patch = (partial: Partial<Filters>) => setFilters({ ...filters, ...partial });
   const baseline: Filters = { ...DEFAULT_FILTERS, query: baselineQuery };
   const dirty = JSON.stringify(filters) !== JSON.stringify(baseline);
@@ -208,14 +209,14 @@ export const FilterMenus: React.FC<FilterMenusProps> = ({
         </ActionMenu.Button>
         <ActionMenu.Overlay align="end">
           <ActionList selectionVariant="multiple">
-            {CONFIG.me && (
+            {me && (
               <ActionList.Item
                 selected={filters.forMe}
                 onSelect={() => patch({ forMe: !filters.forMe })}
               >
                 For me
                 <ActionList.Description variant="block">
-                  Authored by, review requested from, assigned to, or involving {CONFIG.me}
+                  Authored by, review requested from, assigned to, or involving {me}
                 </ActionList.Description>
               </ActionList.Item>
             )}

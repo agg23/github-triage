@@ -1,32 +1,27 @@
 import { HOUR_MS } from "../shared/constants";
 import type { Item, ItemState } from "../shared/types";
-import { CONFIG } from "./config";
+import { getLookups, getSettings } from "./settings";
 import type { ActorClass, BucketId, ForMeReason, TriageItem } from "./types";
-
-const normalizeLogin = (login: string) => login.toLowerCase();
-
-const TEAM_LOGINS = new Set(CONFIG.teamMembers.map(normalizeLogin));
-const TRUSTED_LOGINS = new Set(CONFIG.trustedContributors.map(normalizeLogin));
-const BOT_LOGINS = new Set(CONFIG.bots.map(normalizeLogin));
 
 const hoursSince = (iso: string) => (Date.now() - new Date(iso).getTime()) / HOUR_MS;
 
 export const classify = (login: string | undefined, typename?: string): ActorClass => {
-  const normalized = normalizeLogin(login ?? "");
+  const normalized = (login ?? "").toLowerCase();
+  const { team, trusted, bots } = getLookups();
 
   if (!normalized) {
     return "external";
   }
 
-  if (typename === "Bot" || normalized.endsWith("[bot]") || BOT_LOGINS.has(normalized)) {
+  if (typename === "Bot" || normalized.endsWith("[bot]") || bots.has(normalized)) {
     return "bot";
   }
 
-  if (TEAM_LOGINS.has(normalized)) {
+  if (team.has(normalized)) {
     return "team";
   }
 
-  if (TRUSTED_LOGINS.has(normalized)) {
+  if (trusted.has(normalized)) {
     return "trusted";
   }
 
@@ -36,9 +31,11 @@ export const classify = (login: string | undefined, typename?: string): ActorCla
 export const bucketOf = (
   item: Pick<TriageItem, "type" | "authorClass" | "lastActorClass" | "author" | "lastActor">,
 ): BucketId => {
+  const { me } = getSettings();
+
   if (item.type === "pr" && item.authorClass === "team") {
-    if (CONFIG.me && item.author === CONFIG.me) {
-      return item.lastActor === CONFIG.me ? "waiting" : "attention";
+    if (me && item.author === me) {
+      return item.lastActor === me ? "waiting" : "attention";
     }
 
     if (item.lastActorClass === "team" && item.lastActor !== item.author) {
@@ -64,6 +61,7 @@ export const enrich = (
   priorityBySource: Map<number, number>,
   snoozeByItem: Map<string, ItemState>,
 ): TriageItem => {
+  const { me, newWithinHours } = getSettings();
   const authorClass = classify(item.author, item.authorType);
   const lastActorClass = classify(item.lastActor, item.lastActorType);
   const partial = {
@@ -72,7 +70,6 @@ export const enrich = (
     lastActorClass,
     priority: priorityBySource.get(item.sourceId) ?? 0,
   };
-  const me = CONFIG.me;
 
   const forMeReasons: ForMeReason[] = [];
 
@@ -97,7 +94,7 @@ export const enrich = (
   return {
     ...partial,
     bucket: bucketOf(partial),
-    isNew: hoursSince(item.createdAt) <= CONFIG.newWithinHours,
+    isNew: hoursSince(item.createdAt) <= newWithinHours,
     teamReviewed: item.reviewers.some((reviewer) => classify(reviewer) === "team"),
     forMeReasons,
     forMe: forMeReasons.length > 0,

@@ -18,10 +18,14 @@ const REST_MAX_PAGES = 1000 / REST_PER_PAGE;
 
 export type OwnerKind = Exclude<SourceKind, "repo">;
 
+/**
+ * Called as each page of data is retrieved
+ */
+export type FetchSink = (items: Item[], details: ItemDetail[]) => void;
+
 export interface FetchPage {
-  items: Item[];
-  /** Parallel to `items` */
-  details: ItemDetail[];
+  /** How many items were handed to the sink */
+  written: number;
   rateLimitRemaining: number | undefined;
   pages: number;
 }
@@ -34,10 +38,10 @@ export const fetchRepoUpdatedSince = async (
   name: string,
   since: string,
   sourceId: number,
+  sink: FetchSink,
   onPage?: OnPage,
 ): Promise<FetchPage> => {
-  const fetched: Item[] = [];
-  const details: ItemDetail[] = [];
+  let written = 0;
   let rateLimitRemaining: number | undefined = undefined;
   let pages = 0;
 
@@ -73,6 +77,8 @@ export const fetchRepoUpdatedSince = async (
       pages += 1;
 
       const page = data.repository[connection];
+      const fetched: Item[] = [];
+      const details: ItemDetail[] = [];
       let reachedOld = false;
 
       for (const node of page.nodes) {
@@ -84,7 +90,10 @@ export const fetchRepoUpdatedSince = async (
         fetched.push(toItem(node, connection === "pullRequests", sourceId));
         details.push(toDetail(node));
       }
-      onPage?.(fetched.length);
+
+      sink(fetched, details);
+      written += fetched.length;
+      onPage?.(written);
 
       if (reachedOld || !page.pageInfo.hasNextPage) {
         break;
@@ -94,7 +103,7 @@ export const fetchRepoUpdatedSince = async (
     }
   }
 
-  return { items: fetched, details, rateLimitRemaining, pages };
+  return { written, rateLimitRemaining, pages };
 };
 
 interface SearchResult {
@@ -140,7 +149,12 @@ const restSearchNodeIds = async (search: string, onPage?: OnPage): Promise<Searc
   }
 };
 
-const hydrateNodes = async (ids: string[], sourceId: number): Promise<FetchPage> => {
+const hydrateNodes = async (
+  ids: string[],
+  sourceId: number,
+  sink: FetchSink,
+  onPage?: OnPage,
+): Promise<FetchPage> => {
   const query = /* GraphQL */ `
     query ($ids: [ID!]!) {
       rateLimit { remaining }
@@ -151,8 +165,7 @@ const hydrateNodes = async (ids: string[], sourceId: number): Promise<FetchPage>
       }
     }
   `;
-  const fetched: Item[] = [];
-  const details: ItemDetail[] = [];
+  let written = 0;
   let rateLimitRemaining: number | undefined = undefined;
   let pages = 0;
 
@@ -161,15 +174,22 @@ const hydrateNodes = async (ids: string[], sourceId: number): Promise<FetchPage>
     rateLimitRemaining = data.rateLimit?.remaining ?? rateLimitRemaining;
     pages += 1;
 
+    const fetched: Item[] = [];
+    const details: ItemDetail[] = [];
+
     for (const node of data.nodes ?? []) {
       if (node?.__typename) {
         fetched.push(toItem(node, node.__typename === "PullRequest", sourceId));
         details.push(toDetail(node));
       }
     }
+
+    sink(fetched, details);
+    written += fetched.length;
+    onPage?.(written);
   }
 
-  return { items: fetched, details, rateLimitRemaining, pages };
+  return { written, rateLimitRemaining, pages };
 };
 
 export const fetchOwnerUpdatedSince = async (
@@ -177,6 +197,7 @@ export const fetchOwnerUpdatedSince = async (
   owner: string,
   since: string,
   sourceId: number,
+  sink: FetchSink,
   onPage?: OnPage,
 ): Promise<FetchPage> => {
   const ids: string[] = [];
@@ -190,7 +211,7 @@ export const fetchOwnerUpdatedSince = async (
     requestCount += result.requests;
   }
 
-  const hydrated = await hydrateNodes(ids, sourceId);
+  const hydrated = await hydrateNodes(ids, sourceId, sink, onPage);
 
   return { ...hydrated, pages: hydrated.pages + requestCount };
 };
@@ -223,31 +244,25 @@ export const fetchDetails = async (ids: string[]): Promise<ItemDetail[]> => {
   return details;
 };
 
-export interface SourceFetch extends SyncStats {
-  items: Item[];
-  details: ItemDetail[];
-}
+export const scopeOf = (source: Source) =>
+  source.kind === "repo" ? `${source.owner}/${source.repo}` : `${source.kind}:${source.owner}`;
 
 export const fetchSourceUpdatedSince = async (
   source: Source,
   since: string,
+  sink: FetchSink,
   onPage?: OnPage,
-): Promise<SourceFetch> => {
+): Promise<SyncStats> => {
   const result =
     source.kind === "repo"
-      ? await fetchRepoUpdatedSince(source.owner, source.repo!, since, source.id, onPage)
-      : await fetchOwnerUpdatedSince(source.kind, source.owner, since, source.id, onPage);
+      ? await fetchRepoUpdatedSince(source.owner, source.repo!, since, source.id, sink, onPage)
+      : await fetchOwnerUpdatedSince(source.kind, source.owner, since, source.id, sink, onPage);
 
   return {
     sourceId: source.id,
-    scope:
-      source.kind === "repo"
-        ? `${source.owner}/${source.repo}`
-        : `${source.kind}:${source.owner}`,
-    upserted: result.items.length,
+    scope: scopeOf(source),
+    upserted: result.written,
     pages: result.pages,
     rateLimitRemaining: result.rateLimitRemaining,
-    items: result.items,
-    details: result.details,
   };
 };

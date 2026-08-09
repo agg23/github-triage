@@ -2,6 +2,8 @@ import type {
   Item,
   ItemDetail,
   ItemState,
+  Settings,
+  SettingsPatch,
   Source,
   SourceKind,
   SyncResult,
@@ -55,6 +57,8 @@ export const api = {
   items: (params: Record<string, string> = {}) =>
     request<Item[]>(`/items?${new URLSearchParams(params)}`),
   itemDetail: (id: string) => request<ItemDetail>(`/items/${encodeURIComponent(id)}/detail`),
+  settings: () => request<Settings>("/settings"),
+  updateSettings: (body: SettingsPatch) => send<Settings>("/settings", "PUT", body),
   sources: () => request<SourceWithCount[]>("/sources"),
   addSource: (body: NewSource) => send<Source>("/sources", "POST", body),
   deleteSource: (id: number) => request<Source>(`/sources/${id}`, { method: "DELETE" }),

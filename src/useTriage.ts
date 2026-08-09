@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MINUTE_MS } from "../shared/constants";
 import type { View } from "../shared/types";
 import { api, type SourceWithCount } from "./api";
+import { applySettings } from "./settings";
 import { invalidateStats } from "./statsData";
 import { enrich } from "./triage";
 import type { SnoozeChoice, TriageItem } from "./types";
@@ -37,7 +38,8 @@ export const useTriage = (): Triage => {
 
   const load = useCallback(async () => {
     try {
-      const [loadedSources, rawItems, loadedViews, states] = await Promise.all([
+      const [loadedSettings, loadedSources, rawItems, loadedViews, states] = await Promise.all([
+        api.settings(),
         api.sources(),
         api.items({ state: "open", limit: ITEM_LIMIT }),
         api.views(),
@@ -46,6 +48,7 @@ export const useTriage = (): Triage => {
       const priorityBySource = new Map(loadedSources.map((source) => [source.id, source.priority]));
       const snoozeByItem = new Map(states.map((state) => [state.itemId, state]));
 
+      applySettings(loadedSettings);
       setSources(loadedSources);
       setViews(loadedViews);
       setItems(rawItems.map((item) => enrich(item, priorityBySource, snoozeByItem)));
