@@ -9,7 +9,7 @@
     "start": "tsx server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "db:push": "drizzle-kit push"
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",
