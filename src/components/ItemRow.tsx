@@ -180,6 +180,10 @@ export const ItemRow: React.FC<ItemRowProps> = ({
     classNames.push(styles.muted);
   }
 
+  if (item.forMeReasons.includes("yours")) {
+    classNames.push(styles.mine);
+  }
+
   if (item.flaggedAt) {
     classNames.push(styles.flagged);
   }

@@ -28,6 +28,10 @@
   }
 }
 
+.mine {
+  box-shadow: inset 3px 0 0 var(--fgColor-accent);
+}
+
 .flagged {
   box-shadow: inset 3px 0 0 var(--fgColor-attention);
 }
