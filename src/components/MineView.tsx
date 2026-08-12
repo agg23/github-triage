@@ -95,11 +95,11 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
       return undefined;
     }
 
-    const noSnooze = new Map<string, ItemState>();
+    const noItemState = new Map<string, ItemState>();
     const timeOf = (item: Item) => (sort === "created" ? item.createdAt : item.lastActivityAt);
 
     return fetched[state]
-      .map((item) => enrich(item, priorityBySource, noSnooze))
+      .map((item) => enrich(item, priorityBySource, noItemState))
       .sort((first, second) => timeOf(second).localeCompare(timeOf(first)));
   }, [fetched, state, sort, priorityBySource]);
 

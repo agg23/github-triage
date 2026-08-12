@@ -1,0 +1,1 @@
+ALTER TABLE `item_state` ADD `flagged_at` text;

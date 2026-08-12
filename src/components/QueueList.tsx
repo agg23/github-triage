@@ -5,23 +5,23 @@ import {
   DotFillIcon,
   EyeClosedIcon,
   EyeIcon,
+  FlagIcon,
   HourglassIcon,
   ZapIcon,
 } from "@primer/octicons-react";
 import { ActionList, ActionMenu, Button, CounterLabel } from "@primer/react";
 import { Blankslate } from "@primer/react/experimental";
-import { useState } from "react";
+import { comparatorFor } from "../queue";
 import {
   BUCKET_ORDER,
   type BucketId,
+  type QueueTab,
   type SnoozeChoice,
   type SortId,
   type TriageItem,
 } from "../types";
 import { ItemRow } from "./ItemRow";
 import styles from "./QueueList.module.scss";
-
-type QueueTab = BucketId | "snoozed";
 
 interface TabMetadata {
   label: string;
@@ -34,6 +34,11 @@ const TAB_METADATA: Record<QueueTab, TabMetadata> = {
   new: { label: "New", icon: DotFillIcon, blurb: "Freshly opened and not triaged" },
   waiting: { label: "Waiting", icon: HourglassIcon, blurb: "A team member replied last. Waiting on third party" },
   bot: { label: "Bots", icon: ZapIcon, blurb: "Last changed by a bot" },
+  flagged: {
+    label: "Flagged",
+    icon: FlagIcon,
+    blurb: "Requires attention",
+  },
   snoozed: {
     label: "Snoozed",
     icon: ClockIcon,
@@ -51,7 +56,10 @@ const NO_WAKE_TIME = "9999";
 
 interface QueueListProps {
   byBucket: Map<BucketId, TriageItem[]>;
+  flagged: TriageItem[];
   snoozed: TriageItem[];
+  activeTab: QueueTab;
+  onTabChange: (tab: QueueTab) => void;
   showRepo: boolean;
   hideBots: boolean;
   sort: SortId;
@@ -61,12 +69,17 @@ interface QueueListProps {
   onToggleMuted: () => void;
   onSnooze: (item: TriageItem, choice: SnoozeChoice) => void;
   onWake: (item: TriageItem) => void;
+  onFlag: (item: TriageItem) => void;
+  onUnflag: (item: TriageItem) => void;
   filterMenus?: React.ReactNode;
 }
 
 export const QueueList: React.FC<QueueListProps> = ({
   byBucket,
+  flagged,
   snoozed,
+  activeTab,
+  onTabChange,
   showRepo,
   hideBots,
   sort,
@@ -76,28 +89,47 @@ export const QueueList: React.FC<QueueListProps> = ({
   onToggleMuted,
   onSnooze,
   onWake,
+  onFlag,
+  onUnflag,
   filterMenus,
 }) => {
-  const [active, setActive] = useState<QueueTab>("attention");
-  const tab: QueueTab = hideBots && active === "bot" ? "attention" : active;
+  const tab: QueueTab = hideBots && activeTab === "bot" ? "attention" : activeTab;
 
   const tabs: QueueTab[] = [
+    "flagged",
     ...BUCKET_ORDER.filter((bucketId) => !(bucketId === "bot" && hideBots)),
     "snoozed",
   ];
 
   // Dimmed/muted rows don't show in the count
-  const countOf = (tabId: QueueTab) =>
-    tabId === "snoozed"
-      ? snoozed.length
-      : (byBucket.get(tabId)?.filter((item) => item.mutedBy === undefined).length ?? 0);
+  const countOf = (tabId: QueueTab) => {
+    switch (tabId) {
+      case "flagged":
+        return flagged.length;
+      case "snoozed":
+        return snoozed.length;
+      default:
+        return byBucket.get(tabId)?.filter((item) => item.mutedBy === undefined).length ?? 0;
+    }
+  };
 
   const wakeTimeOf = (item: TriageItem) => item.snooze?.wakeAt ?? NO_WAKE_TIME;
-  const items =
-    tab === "snoozed"
-      ? [...snoozed].sort((first, second) => wakeTimeOf(first).localeCompare(wakeTimeOf(second)))
-      : (byBucket.get(tab) ?? []);
-  const rowActions = tab === "snoozed" ? { onWake } : { onSnooze };
+
+  const itemsFor = (tabId: QueueTab): TriageItem[] => {
+    switch (tabId) {
+      case "flagged":
+        return [...flagged].sort(comparatorFor(sort));
+      case "snoozed":
+        return [...snoozed].sort((first, second) => wakeTimeOf(first).localeCompare(wakeTimeOf(second)));
+      default:
+        return byBucket.get(tabId) ?? [];
+    }
+  };
+
+  const items = itemsFor(tab);
+
+  const rowActions =
+    tab === "snoozed" ? { onWake, onFlag, onUnflag } : { onSnooze, onFlag, onUnflag };
 
   return (
     <div className={styles.listbox}>
@@ -106,14 +138,19 @@ export const QueueList: React.FC<QueueListProps> = ({
           {tabs.map((tabId) => {
             const meta = TAB_METADATA[tabId];
             const Icon = meta.icon;
+            const classNames = [styles.tab];
+
+            if (tabId === tab) {
+              classNames.push(styles.active);
+            }
 
             return (
               <button
                 key={tabId}
-                className={tabId === tab ? `${styles.tab} ${styles.active}` : styles.tab}
+                className={classNames.join(" ")}
                 title={meta.blurb}
                 aria-current={tabId === tab || undefined}
-                onClick={() => setActive(tabId)}
+                onClick={() => onTabChange(tabId)}
               >
                 <Icon size={16} />
                 {meta.label}

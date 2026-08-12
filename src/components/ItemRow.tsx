@@ -1,4 +1,5 @@
 import {
+  FlagIcon,
   GitMergeIcon,
   GitPullRequestClosedIcon,
   GitPullRequestDraftIcon,
@@ -6,7 +7,14 @@ import {
   IssueClosedIcon,
   IssueOpenedIcon,
 } from "@primer/octicons-react";
-import { Button, IssueLabelToken, Label, type LabelProps, RelativeTime } from "@primer/react";
+import {
+  Button,
+  IconButton,
+  IssueLabelToken,
+  Label,
+  type LabelProps,
+  RelativeTime,
+} from "@primer/react";
 import type { ItemState } from "../../shared/types";
 import type { ActorClass, ForMeReason, SnoozeChoice, TriageItem } from "../types";
 import { ItemPreview } from "./ItemPreview";
@@ -134,16 +142,40 @@ interface ItemRowProps {
   showRepo?: boolean;
   onSnooze?: (item: TriageItem, choice: SnoozeChoice) => void;
   onWake?: (item: TriageItem) => void;
+  onFlag?: (item: TriageItem) => void;
+  onUnflag?: (item: TriageItem) => void;
 }
 
-export const ItemRow: React.FC<ItemRowProps> = ({ item, showRepo, onSnooze, onWake }) => {
+export const ItemRow: React.FC<ItemRowProps> = ({
+  item,
+  showRepo,
+  onSnooze,
+  onWake,
+  onFlag,
+  onUnflag,
+}) => {
   const openerIsLast =
     item.lastActionKind === "opened" ||
     (item.lastActor === item.author && item.lastActivityAt === item.createdAt);
   const lastVerb = item.lastActionKind ?? "responded";
 
+  const undo = Boolean(onWake && item.snooze);
+  const canUnflag = onUnflag && item.flaggedAt;
+  const canFlag = onFlag && !item.flaggedAt;
+  const canSnooze = onSnooze && !item.snooze;
+
+  const classNames = [styles.item];
+
+  if (item.mutedBy !== undefined) {
+    classNames.push(styles.muted);
+  }
+
+  if (item.flaggedAt) {
+    classNames.push(styles.flagged);
+  }
+
   return (
-    <div className={item.mutedBy === undefined ? styles.item : `${styles.item} ${styles.muted}`}>
+    <div className={classNames.join(" ")}>
       <div className={styles.state} title={stateTitleOf(item)}>
         <StateIcon item={item} />
       </div>
@@ -171,6 +203,11 @@ export const ItemRow: React.FC<ItemRowProps> = ({ item, showRepo, onSnooze, onWa
               }
             >
               muted
+            </Label>
+          )}
+          {item.flaggedAt && (
+            <Label size="small" variant="attention" title={`Flagged ${item.flaggedAt}`}>
+              flagged
             </Label>
           )}
           {item.snooze && <SnoozeChip snooze={item.snooze} />}
@@ -223,16 +260,32 @@ export const ItemRow: React.FC<ItemRowProps> = ({ item, showRepo, onSnooze, onWa
         </div>
       </div>
 
-      {onSnooze && !item.snooze && (
-        <div className={styles.actions}>
-          <SnoozeActions onSnooze={(choice) => onSnooze(item, choice)} />
-        </div>
-      )}
-      {onWake && item.snooze && (
-        <div className={`${styles.actions} ${styles.actionsVisible}`}>
-          <Button size="small" onClick={() => onWake(item)}>
-            Wake
-          </Button>
+      {(undo || canUnflag || canFlag || canSnooze) && (
+        <div className={undo ? `${styles.actions} ${styles.actionsVisible}` : styles.actions}>
+          {canUnflag && (
+            <IconButton
+              icon={FlagIcon}
+              size="small"
+              variant="invisible"
+              aria-label="Remove flag"
+              onClick={() => onUnflag(item)}
+            />
+          )}
+          {onWake && item.snooze && (
+            <Button size="small" onClick={() => onWake(item)}>
+              Wake
+            </Button>
+          )}
+          {canFlag && (
+            <IconButton
+              icon={FlagIcon}
+              size="small"
+              variant="invisible"
+              aria-label="Flag as needing your attention"
+              onClick={() => onFlag(item)}
+            />
+          )}
+          {canSnooze && <SnoozeActions onSnooze={(choice) => onSnooze(item, choice)} />}
         </div>
       )}
     </div>

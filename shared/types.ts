@@ -119,6 +119,7 @@ export interface ItemState {
   itemId: string;
   wakeAt: string | null;
   wakeOnActivityAfter?: string;
+  flaggedAt: string | null;
   createdAt: string;
 }
 

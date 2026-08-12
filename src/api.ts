@@ -52,6 +52,7 @@ const send = <T>(path: string, method: string, body: unknown): Promise<T> =>
   request<T>(path, { method, headers: JSON_HEADERS, body: JSON.stringify(body) });
 
 const statePath = (id: string) => `/items/${encodeURIComponent(id)}/state`;
+const flagPath = (id: string) => `/items/${encodeURIComponent(id)}/flag`;
 
 export const api = {
   items: (params: Record<string, string> = {}) =>
@@ -69,5 +70,7 @@ export const api = {
   itemStates: () => request<ItemState[]>("/item-states"),
   snoozeItem: (id: string, body: SnoozeChoice) => send<ItemState>(statePath(id), "PUT", body),
   wakeItem: (id: string) => request<ItemState>(statePath(id), { method: "DELETE" }),
+  flagItem: (id: string) => send<ItemState>(flagPath(id), "PUT", {}),
+  unflagItem: (id: string) => request<ItemState>(flagPath(id), { method: "DELETE" }),
   sync: () => request<SyncResult>("/sync", { method: "POST" }),
 };

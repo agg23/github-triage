@@ -23,6 +23,8 @@ export interface Triage {
   syncNow: () => void;
   snooze: (item: TriageItem, choice: SnoozeChoice) => void;
   wake: (item: TriageItem) => void;
+  flag: (item: TriageItem) => void;
+  unflag: (item: TriageItem) => void;
 }
 
 const messageOf = (caught: unknown) =>
@@ -46,12 +48,12 @@ export const useTriage = (): Triage => {
         api.itemStates(),
       ]);
       const priorityBySource = new Map(loadedSources.map((source) => [source.id, source.priority]));
-      const snoozeByItem = new Map(states.map((state) => [state.itemId, state]));
+      const stateByItem = new Map(states.map((state) => [state.itemId, state]));
 
       applySettings(loadedSettings);
       setSources(loadedSources);
       setViews(loadedViews);
-      setItems(rawItems.map((item) => enrich(item, priorityBySource, snoozeByItem)));
+      setItems(rawItems.map((item) => enrich(item, priorityBySource, stateByItem)));
       setError(undefined);
     } catch (caught) {
       setError(messageOf(caught));
@@ -113,5 +115,7 @@ export const useTriage = (): Triage => {
     syncNow: () => void syncNow(),
     snooze: (item, choice) => void mutate(api.snoozeItem(item.id, choice)),
     wake: (item) => void mutate(api.wakeItem(item.id)),
+    flag: (item) => void mutate(api.flagItem(item.id)),
+    unflag: (item) => void mutate(api.unflagItem(item.id)),
   };
 };

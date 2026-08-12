@@ -5,8 +5,8 @@ import { Hono } from "hono";
 import { PORT, SYNC_INTERVAL_MS } from "./env";
 import { itemRoutes } from "./routes/items";
 import { settingsRoutes } from "./routes/settings";
-import { snoozeRoutes } from "./routes/snooze";
 import { sourceRoutes } from "./routes/sources";
+import { stateRoutes } from "./routes/state";
 import { syncRoutes } from "./routes/sync";
 import { viewRoutes } from "./routes/views";
 import { githubToken } from "./settings";
@@ -18,7 +18,7 @@ const api = new Hono();
 api.route("/", settingsRoutes);
 api.route("/", sourceRoutes);
 api.route("/", viewRoutes);
-api.route("/", snoozeRoutes);
+api.route("/", stateRoutes);
 api.route("/", itemRoutes);
 api.route("/", syncRoutes);
 

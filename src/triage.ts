@@ -59,7 +59,7 @@ export const bucketOf = (
 export const enrich = (
   item: Item,
   priorityBySource: Map<number, number>,
-  snoozeByItem: Map<string, ItemState>,
+  stateByItem: Map<string, ItemState>,
 ): TriageItem => {
   const { me, newWithinHours } = getSettings();
   const authorClass = classify(item.author, item.authorType);
@@ -91,6 +91,9 @@ export const enrich = (
     }
   }
 
+  const state = stateByItem.get(item.id);
+  const asleep = state?.wakeAt || state?.wakeOnActivityAfter;
+
   return {
     ...partial,
     bucket: bucketOf(partial),
@@ -98,7 +101,8 @@ export const enrich = (
     teamReviewed: item.reviewers.some((reviewer) => classify(reviewer) === "team"),
     forMeReasons,
     forMe: forMeReasons.length > 0,
-    snooze: snoozeByItem.get(item.id),
+    snooze: asleep ? state : undefined,
+    flaggedAt: state?.flaggedAt ?? undefined,
     mutedBy: undefined,
   };
 };

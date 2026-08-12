@@ -7,6 +7,7 @@ import type { QueueRows } from "../queue";
 import type {
   BucketId,
   FilterOptions,
+  QueueTab,
   SnoozeChoice,
   SortId,
   TriageItem,
@@ -24,11 +25,16 @@ interface QueuePageProps {
   options: FilterOptions;
   rows: QueueRows;
   byBucket: Map<BucketId, TriageItem[]>;
+  flagged: TriageItem[];
   snoozed: TriageItem[];
+  activeTab: QueueTab;
+  onTabChange: (tab: QueueTab) => void;
   sort: SortId;
   onSortChange: (sort: SortId) => void;
   onSnooze: (item: TriageItem, choice: SnoozeChoice) => void;
   onWake: (item: TriageItem) => void;
+  onFlag: (item: TriageItem) => void;
+  onUnflag: (item: TriageItem) => void;
 }
 
 export const QueuePage: React.FC<QueuePageProps> = ({
@@ -39,11 +45,16 @@ export const QueuePage: React.FC<QueuePageProps> = ({
   options,
   rows,
   byBucket,
+  flagged,
   snoozed,
+  activeTab,
+  onTabChange,
   sort,
   onSortChange,
   onSnooze,
   onWake,
+  onFlag,
+  onUnflag,
 }) => {
   if (loading) {
     return (
@@ -84,7 +95,10 @@ export const QueuePage: React.FC<QueuePageProps> = ({
             />
           }
           byBucket={byBucket}
+          flagged={flagged}
           snoozed={snoozed}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
           showRepo={options.repos.length > 1}
           hideBots={stored.filters.hideBots}
           sort={sort}
@@ -94,6 +108,8 @@ export const QueuePage: React.FC<QueuePageProps> = ({
           onToggleMuted={stored.toggleMuted}
           onSnooze={onSnooze}
           onWake={onWake}
+          onFlag={onFlag}
+          onUnflag={onUnflag}
         />
       </main>
     </>

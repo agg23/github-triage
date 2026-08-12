@@ -103,5 +103,6 @@ export const itemState = sqliteTable("item_state", {
     .references(() => items.id, { onDelete: "cascade" }),
   wakeAt: text("wake_at"),
   wakeOnActivityAfter: text("wake_on_activity_after"),
+  flaggedAt: text("flagged_at"),
   createdAt: text("created_at").notNull(),
 });

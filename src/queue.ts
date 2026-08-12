@@ -68,6 +68,18 @@ export const applyRules = (
   return { visible, shownCount, mutedTotal };
 };
 
+export const comparatorFor =
+  (sort: SortId) =>
+  (first: TriageItem, second: TriageItem): number => {
+    if (sort === "priority" && first.priority !== second.priority) {
+      return second.priority - first.priority;
+    } else if (sort === "created") {
+      return second.createdAt.localeCompare(first.createdAt);
+    } else {
+      return second.lastActivityAt.localeCompare(first.lastActivityAt);
+    }
+  };
+
 export const groupByBucket = (
   visible: TriageItem[],
   sort: SortId,
@@ -85,17 +97,14 @@ export const groupByBucket = (
     if (item.bucket === "attention" && item.isNew) {
       byBucket.get("new")?.push(item);
     }
+
+    // Flagging shows in all of the buckets
+    if (item.bucket !== "attention" && item.flaggedAt) {
+      byBucket.get("attention")?.push(item);
+    }
   }
 
-  const compare = (first: TriageItem, second: TriageItem) => {
-    if (sort === "priority" && first.priority !== second.priority) {
-      return second.priority - first.priority;
-    } else if (sort === "created") {
-      return second.createdAt.localeCompare(first.createdAt);
-    } else {
-      return second.lastActivityAt.localeCompare(first.lastActivityAt);
-    }
-  };
+  const compare = comparatorFor(sort);
 
   for (const list of byBucket.values()) {
     list.sort(compare);

@@ -1,5 +1,6 @@
 import {
   EyeIcon,
+  FlagIcon,
   GearIcon,
   GitPullRequestIcon,
   GraphIcon,
@@ -17,7 +18,7 @@ import { SourcesView } from "./components/SourcesView";
 import { StatsView } from "./components/StatsView";
 import { ViewsView } from "./components/ViewsView";
 import { applyRules, filterOptionsFor, groupByBucket } from "./queue";
-import type { SortId } from "./types";
+import type { QueueTab, SortId } from "./types";
 import { useStoredFilters } from "./useStoredFilters";
 import { useTriage } from "./useTriage";
 import styles from "./App.module.scss";
@@ -36,6 +37,7 @@ type Tab = (typeof TABS)[number]["id"];
 
 export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>("queue");
+  const [queueTab, setQueueTab] = useState<QueueTab>("attention");
   const [sort, setSort] = useState<SortId>("recent");
   const triage = useTriage();
   const stored = useStoredFilters(triage.views, triage.loading);
@@ -45,9 +47,17 @@ export const App: React.FC = () => {
 
   const options = useMemo(() => filterOptionsFor(items), [items]);
 
-  // Snoozed items skip the whole query pipeline and live in their own tab
+  const flagged = useMemo(
+    () => items.filter((item) => item.flaggedAt && !item.snooze),
+    [items],
+  );
   const snoozed = useMemo(() => items.filter((item) => item.snooze), [items]);
   const awake = useMemo(() => items.filter((item) => !item.snooze), [items]);
+
+  const showFlagged = () => {
+    setTab("queue");
+    setQueueTab("flagged");
+  };
 
   const rows = useMemo(() => applyRules(awake, filters, hideMuted), [awake, filters, hideMuted]);
   const byBucket = useMemo(() => groupByBucket(rows.visible, sort), [rows.visible, sort]);
@@ -62,11 +72,16 @@ export const App: React.FC = () => {
         options={options}
         rows={rows}
         byBucket={byBucket}
+        flagged={flagged}
         snoozed={snoozed}
+        activeTab={queueTab}
+        onTabChange={setQueueTab}
         sort={sort}
         onSortChange={setSort}
         onSnooze={triage.snooze}
         onWake={triage.wake}
+        onFlag={triage.flag}
+        onUnflag={triage.unflag}
       />
     ),
     authored: <MineView sources={triage.sources} section="authored" />,
@@ -90,6 +105,17 @@ export const App: React.FC = () => {
             <span>
               synced <RelativeTime datetime={triage.lastSyncedAt} />
             </span>
+          )}
+          {flagged.length > 0 && (
+            <Button
+              size="small"
+              leadingVisual={FlagIcon}
+              className={styles.flagged}
+              title="Items requiring your attention"
+              onClick={showFlagged}
+            >
+              {flagged.length} flagged
+            </Button>
           )}
           <Button
             size="small"

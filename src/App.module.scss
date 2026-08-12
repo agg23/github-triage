@@ -28,6 +28,18 @@
   white-space: nowrap;
 }
 
+.flagged {
+  color: var(--fgColor-attention);
+  background: var(--bgColor-attention-muted);
+  border-color: var(--borderColor-attention-muted);
+
+  &:hover:not(:disabled) {
+    color: var(--fgColor-onEmphasis);
+    background: var(--bgColor-attention-emphasis);
+    border-color: var(--borderColor-attention-emphasis);
+  }
+}
+
 .nav {
   margin-bottom: 16px;
 

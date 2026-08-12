@@ -28,6 +28,10 @@
   }
 }
 
+.flagged {
+  box-shadow: inset 3px 0 0 var(--fgColor-attention);
+}
+
 .state {
   display: flex;
   align-items: center;
