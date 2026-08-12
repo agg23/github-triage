@@ -125,3 +125,26 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+// Special stack for drawing a slash over the flag icon
+.iconStack {
+  position: relative;
+  display: inline-flex;
+  vertical-align: text-bottom;
+}
+
+.slash {
+  position: absolute;
+  inset: 0;
+}
+
+.slashCasing {
+  stroke: var(--bgColor-muted);
+  stroke-width: 3.25;
+}
+
+.slashLine {
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}

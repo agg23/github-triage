@@ -36,6 +36,16 @@ const FOR_ME_REASONS: Record<ForMeReason, ForMeBadge> = {
   },
 };
 
+const FlagSlashIcon: React.FC = () => (
+  <span className={styles.iconStack}>
+    <FlagIcon size={16} />
+    <svg className={styles.slash} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+      <line className={styles.slashCasing} x1="2.5" y1="2.5" x2="13.5" y2="13.5" />
+      <line className={styles.slashLine} x1="2.5" y1="2.5" x2="13.5" y2="13.5" />
+    </svg>
+  </span>
+);
+
 export const MAX_LABELS = 8;
 
 interface StateIconProps {
@@ -264,7 +274,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         <div className={undo ? `${styles.actions} ${styles.actionsVisible}` : styles.actions}>
           {canUnflag && (
             <IconButton
-              icon={FlagIcon}
+              icon={FlagSlashIcon}
               size="small"
               variant="invisible"
               aria-label="Remove flag"
