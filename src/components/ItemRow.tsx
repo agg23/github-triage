@@ -16,6 +16,7 @@ import {
   RelativeTime,
 } from "@primer/react";
 import type { ItemState } from "../../shared/types";
+import { useLastOpened } from "../lastOpened";
 import type { ActorClass, ForMeReason, SnoozeChoice, TriageItem } from "../types";
 import { ItemPreview } from "./ItemPreview";
 import { SnoozeActions } from "./SnoozeMenu";
@@ -164,6 +165,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   onFlag,
   onUnflag,
 }) => {
+  const { lastOpenedId: lastOpened } = useLastOpened();
   const openerIsLast =
     item.lastActionKind === "opened" ||
     (item.lastActor === item.author && item.lastActivityAt === item.createdAt);
@@ -178,6 +180,10 @@ export const ItemRow: React.FC<ItemRowProps> = ({
 
   if (item.mutedBy !== undefined) {
     classNames.push(styles.muted);
+  }
+
+  if (item.id === lastOpened) {
+    classNames.push(styles.lastOpened);
   }
 
   if (item.forMeReasons.includes("yours")) {

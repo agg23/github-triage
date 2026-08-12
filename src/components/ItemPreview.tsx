@@ -3,6 +3,7 @@ import { Label, type LabelProps, Overlay, RelativeTime, Spinner } from "@primer/
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailComment, ItemDetail } from "../../shared/types";
 import { api } from "../api";
+import { useLastOpened } from "../lastOpened";
 import { classify } from "../triage";
 import type { TriageItem } from "../types";
 import styles from "./ItemPreview.module.scss";
@@ -284,6 +285,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<Placement | undefined>(undefined);
   const [overflowed, setOverflowed] = useState(false);
+  const { markOpened } = useLastOpened();
   const loaded = useDetail(item.id, open);
 
   const schedule = (next: boolean, delay: number) => {
@@ -354,6 +356,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
         onMouseLeave={() => schedule(false, CLOSE_DELAY_MS)}
         onFocus={(event) => event.target.matches(":focus-visible") && schedule(true, 0)}
         onBlur={() => schedule(false, 0)}
+        onClick={() => markOpened(item.id)}
       >
         {children}
       </a>
@@ -385,6 +388,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => markOpened(item.id)}
                 >
                   {item.title}
                 </a>

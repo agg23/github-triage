@@ -17,6 +17,7 @@ import { SettingsView } from "./components/SettingsView";
 import { SourcesView } from "./components/SourcesView";
 import { StatsView } from "./components/StatsView";
 import { ViewsView } from "./components/ViewsView";
+import { LastOpenedProvider } from "./lastOpened";
 import { applyRules, filterOptionsFor, groupByBucket } from "./queue";
 import type { QueueTab, SortId } from "./types";
 import { useStoredFilters } from "./useStoredFilters";
@@ -93,66 +94,68 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.head}>
-        <h1>Triage</h1>
-        <div className={styles.status}>
-          <span>
-            {rows.shownCount} shown
-            {rows.mutedTotal > 0 ? `, ${rows.mutedTotal} dimmed` : ""} / {items.length} open
-          </span>
-          {triage.lastSyncedAt && (
+    <LastOpenedProvider>
+      <div className={styles.shell}>
+        <header className={styles.head}>
+          <h1>Triage</h1>
+          <div className={styles.status}>
             <span>
-              synced <RelativeTime datetime={triage.lastSyncedAt} />
+              {rows.shownCount} shown
+              {rows.mutedTotal > 0 ? `, ${rows.mutedTotal} dimmed` : ""} / {items.length} open
             </span>
-          )}
-          {flagged.length > 0 && (
+            {triage.lastSyncedAt && (
+              <span>
+                synced <RelativeTime datetime={triage.lastSyncedAt} />
+              </span>
+            )}
+            {flagged.length > 0 && (
+              <Button
+                size="small"
+                leadingVisual={FlagIcon}
+                className={styles.flagged}
+                title="Items requiring your attention"
+                onClick={showFlagged}
+              >
+                {flagged.length} flagged
+              </Button>
+            )}
             <Button
               size="small"
-              leadingVisual={FlagIcon}
-              className={styles.flagged}
-              title="Items requiring your attention"
-              onClick={showFlagged}
+              leadingVisual={SyncIcon}
+              loading={triage.syncing}
+              onClick={triage.syncNow}
             >
-              {flagged.length} flagged
+              Sync now
             </Button>
-          )}
-          <Button
-            size="small"
-            leadingVisual={SyncIcon}
-            loading={triage.syncing}
-            onClick={triage.syncNow}
-          >
-            Sync now
-          </Button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      <UnderlineNav aria-label="Sections" className={styles.nav} hideIconsBreakpoint={null}>
-        {TABS.map((navTab) => (
-          <UnderlineNav.Item
-            key={navTab.id}
-            as="button"
-            aria-current={tab === navTab.id ? "page" : undefined}
-            leadingVisual={<navTab.icon />}
-            counter={navTab.id === "queue" && !triage.loading ? rows.shownCount : undefined}
-            onSelect={(event) => {
-              event.preventDefault();
-              setTab(navTab.id);
-            }}
-          >
-            {navTab.label}
-          </UnderlineNav.Item>
-        ))}
-      </UnderlineNav>
+        <UnderlineNav aria-label="Sections" className={styles.nav} hideIconsBreakpoint={null}>
+          {TABS.map((navTab) => (
+            <UnderlineNav.Item
+              key={navTab.id}
+              as="button"
+              aria-current={tab === navTab.id ? "page" : undefined}
+              leadingVisual={<navTab.icon />}
+              counter={navTab.id === "queue" && !triage.loading ? rows.shownCount : undefined}
+              onSelect={(event) => {
+                event.preventDefault();
+                setTab(navTab.id);
+              }}
+            >
+              {navTab.label}
+            </UnderlineNav.Item>
+          ))}
+        </UnderlineNav>
 
-      {triage.error && (
-        <Flash variant="danger" className="shell-flash">
-          {triage.error}
-        </Flash>
-      )}
+        {triage.error && (
+          <Flash variant="danger" className="shell-flash">
+            {triage.error}
+          </Flash>
+        )}
 
-      {tabContent[tab]}
-    </div>
+        {tabContent[tab]}
+      </div>
+    </LastOpenedProvider>
   );
 };
