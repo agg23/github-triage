@@ -73,6 +73,7 @@ export const items = sqliteTable("items", {
   lastActorType: text("last_actor_type").notNull(),
   lastActivityAt: text("last_activity_at").notNull(),
   lastActionKind: text("last_action_kind").$type<ActionKind>(),
+  lastCommentUrl: text("last_comment_url"),
   fetchedAt: text("fetched_at").notNull(),
 });
 

@@ -8,7 +8,7 @@ export const DETAIL_FIELDS = `
   id bodyHTML
   comments(last: ${DETAIL_COMMENTS}) {
     totalCount
-    nodes { author { login __typename } createdAt bodyHTML }
+    nodes { author { login __typename } createdAt bodyHTML url }
   }
 `;
 
@@ -18,8 +18,8 @@ export const PR_DETAIL_FIELDS = `
     totalCount
     nodes {
       author { login __typename }
-      submittedAt state bodyHTML
-      comments(first: 1) { totalCount nodes { bodyHTML } }
+      submittedAt state bodyHTML url
+      comments(first: 1) { totalCount nodes { bodyHTML url } }
     }
   }
 `;
@@ -46,7 +46,7 @@ export const PR_FIELDS = `
     nodes {
       isResolved
       resolvedBy { login }
-      comments(last: 1) { nodes { author { login __typename } createdAt } }
+      comments(last: 1) { nodes { author { login __typename } createdAt url } }
     }
   }
   reviewRequests(first: 10) {
@@ -76,10 +76,12 @@ export interface RawComment {
   author: Actor | null;
   createdAt: string;
   bodyHTML?: string;
+  url?: string;
 }
 
 export interface RawReviewComment {
   bodyHTML: string;
+  url?: string;
 }
 
 export interface RawReview {
@@ -87,6 +89,7 @@ export interface RawReview {
   submittedAt: string | null;
   state?: string;
   bodyHTML?: string;
+  url?: string;
   comments?: Connected<RawReviewComment>;
 }
 

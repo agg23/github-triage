@@ -165,7 +165,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   onFlag,
   onUnflag,
 }) => {
-  const { lastOpenedId: lastOpened } = useLastOpened();
+  const { lastOpenedId: lastOpened, markOpened } = useLastOpened();
   const openerIsLast =
     item.lastActionKind === "opened" ||
     (item.lastActor === item.author && item.lastActivityAt === item.createdAt);
@@ -253,7 +253,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         </div>
 
         <div className={styles.meta}>
-          <span>#{item.number}</span>
+          <a
+            className={styles.user}
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            title="Open at top"
+            onClick={() => markOpened(item.id)}
+          >
+            #{item.number}
+          </a>
           <span className={styles.metaSep}>·</span>
           <ActorLink login={item.author} actorClass={item.authorClass} />
           <span>

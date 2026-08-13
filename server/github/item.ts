@@ -17,6 +17,8 @@ interface ItemEvent {
   actor: Actor | null;
   at: string;
   kind: ActionKind;
+  /** Anchor URL of the comment/review behind this event, if any */
+  url?: string;
 }
 
 const isBot = (actor: Actor | null) =>
@@ -26,13 +28,19 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
   const events: ItemEvent[] = [{ actor: node.author, at: node.createdAt, kind: "opened" }];
 
   for (const comment of node.comments.nodes) {
-    events.push({ actor: comment.author, at: comment.createdAt, kind: "commented" });
+    events.push({ actor: comment.author, at: comment.createdAt, kind: "commented", url: comment.url });
   }
 
   for (const review of node.reviews?.nodes ?? []) {
     // No submittedAt means PENDING
     if (review.submittedAt) {
-      events.push({ actor: review.author, at: review.submittedAt, kind: "reviewed" });
+      events.push({
+        actor: review.author,
+        at: review.submittedAt,
+        kind: "reviewed",
+        // If there is no body, use the latest comment as the link
+        url: review.bodyHTML ? review.url : (review.comments?.nodes[0]?.url ?? review.url),
+      });
     }
   }
 
@@ -47,6 +55,7 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
         actor: { login: thread.resolvedBy.login, __typename: "User" },
         at: lastComment.createdAt,
         kind: "resolved",
+        url: lastComment.url,
       });
     }
   }
@@ -97,8 +106,12 @@ export const toDetail = (node: RawDetailNode): ItemDetail => ({
 
 export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number): Item => {
   const events = eventsOf(node);
+
+  // Last non-bot entry
   const last =
     [...events].reverse().find((event) => !isBot(event.actor)) ?? events[events.length - 1];
+  // Actual last entry
+  const newest = events[events.length - 1];
 
   return {
     id: node.id,
@@ -134,6 +147,7 @@ export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number):
     lastActorType: last.actor?.__typename ?? "User",
     lastActivityAt: last.at,
     lastActionKind: last.kind,
+    lastCommentUrl: newest.url ?? null,
     fetchedAt: new Date().toISOString(),
   };
 };

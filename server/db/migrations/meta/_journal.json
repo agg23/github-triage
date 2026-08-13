@@ -15,6 +15,13 @@
       "when": 1786374263404,
       "tag": "0001_flagged_items",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786573306852,
+      "tag": "0002_last_comment_url",
+      "breakpoints": true
     }
   ]
 }

@@ -49,6 +49,7 @@ export interface Item {
   lastActorType: string;
   lastActivityAt: string;
   lastActionKind: ActionKind | null;
+  lastCommentUrl: string | null;
   fetchedAt: string;
 }
 
