@@ -13,10 +13,11 @@ import { ActionList, ActionMenu, Button, CounterLabel } from "@primer/react";
 import { Blankslate } from "@primer/react/experimental";
 import { comparatorFor } from "../queue";
 import {
-  BUCKET_ORDER,
   type BucketId,
+  QUEUE_TABS,
   type QueueTab,
   type SnoozeChoice,
+  SORT_IDS,
   type SortId,
   type TriageItem,
 } from "../types";
@@ -95,11 +96,7 @@ export const QueueList: React.FC<QueueListProps> = ({
 }) => {
   const tab: QueueTab = hideBots && activeTab === "bot" ? "attention" : activeTab;
 
-  const tabs: QueueTab[] = [
-    "flagged",
-    ...BUCKET_ORDER.filter((bucketId) => !(bucketId === "bot" && hideBots)),
-    "snoozed",
-  ];
+  const tabs = QUEUE_TABS.filter((tabId) => !(tabId === "bot" && hideBots));
 
   // Dimmed/muted rows don't show in the count
   const countOf = (tabId: QueueTab) => {
@@ -179,7 +176,7 @@ export const QueueList: React.FC<QueueListProps> = ({
               </ActionMenu.Button>
               <ActionMenu.Overlay align="end">
                 <ActionList selectionVariant="single">
-                  {(Object.keys(SORT_LABEL) as SortId[]).map((sortId) => (
+                  {SORT_IDS.map((sortId) => (
                     <ActionList.Item
                       key={sortId}
                       selected={sort === sortId}

@@ -1,18 +1,18 @@
 import { TableIcon } from "@primer/octicons-react";
 import { Button, Flash, RelativeTime, SegmentedControl, Spinner } from "@primer/react";
+import { parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
 import { DAY_MS } from "../../shared/constants";
 import type { ItemType } from "../../shared/types";
-import { fetchRepoLabels, fetchStats, type StatMetric, type StatsResponse } from "../statsData";
+import { fetchRepoLabels, fetchStats, type StatsResponse } from "../statsData";
 import {
   bucketClassTotal,
   CLASS_LABEL,
   classColor,
   CONTRIB_CLASSES,
   DEFAULT_PRESET_ID,
-  type PresetId,
+  PRESET_IDS,
   PRESETS,
-  type Scope,
   SCOPES,
   scopeLabel,
   TYPE_COLOR,
@@ -32,20 +32,28 @@ const BACKLOG_LABEL: Record<ItemType, string> = {
   pr: "PRs",
 };
 
+const METRICS = ["opened", "open"] as const;
+
+const statsParsers = {
+  metric: parseAsStringLiteral(METRICS).withDefault("opened"),
+  range: parseAsStringLiteral(PRESET_IDS).withDefault(DEFAULT_PRESET_ID),
+  scope: parseAsStringLiteral(SCOPES).withDefault("all"),
+  label: parseAsString.withDefault(""),
+  table: parseAsBoolean.withDefault(false),
+};
+
 export const StatsView: React.FC = () => {
-  const [presetId, setPresetId] = useState<PresetId>(DEFAULT_PRESET_ID);
-  const [metric, setMetric] = useState<StatMetric>("opened");
-  const [scope, setScope] = useState<Scope>("all");
-  const [label, setLabel] = useState("");
+  const [params, setParams] = useQueryStates(statsParsers, { history: "push" });
   const [labels, setLabels] = useState<string[]>([]);
-  const [showTable, setShowTable] = useState(false);
+
+  const { metric, range, scope, label, table: showTable } = params;
 
   const [data, setData] = useState<StatsResponse | undefined>(undefined);
   const [loadedAt, setLoadedAt] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const preset = PRESETS.find((candidate) => candidate.id === presetId) ?? PRESETS[0];
+  const preset = PRESETS.find((candidate) => candidate.id === range) ?? PRESETS[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +103,7 @@ export const StatsView: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [presetId, label, metric]);
+  }, [preset, label, metric]);
 
   const stats = data?.stats;
   const buckets = stats?.buckets ?? [];
@@ -144,7 +152,7 @@ export const StatsView: React.FC = () => {
         <SegmentedControl
           aria-label="Metric"
           size="small"
-          onChange={(index) => setMetric(index === 0 ? "opened" : "open")}
+          onChange={(index) => void setParams({ metric: METRICS[index] })}
         >
           <SegmentedControl.Button selected={metric === "opened"}>Opened</SegmentedControl.Button>
           <SegmentedControl.Button selected={metric === "open"}>
@@ -154,10 +162,10 @@ export const StatsView: React.FC = () => {
         <SegmentedControl
           aria-label="Time range"
           size="small"
-          onChange={(index) => setPresetId(PRESETS[index].id)}
+          onChange={(index) => void setParams({ range: PRESETS[index].id })}
         >
           {PRESETS.map((candidate) => (
-            <SegmentedControl.Button key={candidate.id} selected={candidate.id === presetId}>
+            <SegmentedControl.Button key={candidate.id} selected={candidate.id === range}>
               {candidate.label}
             </SegmentedControl.Button>
           ))}
@@ -166,14 +174,19 @@ export const StatsView: React.FC = () => {
           {preset.granularity === "week" ? "weekly" : "monthly"} buckets
         </span>
         <div className={styles.barRight}>
-          <FilterSelectPanel label="Label" value={label} options={labels} onChange={setLabel} />
+          <FilterSelectPanel
+            label="Label"
+            value={label}
+            options={labels}
+            onChange={(next) => void setParams({ label: next })}
+          />
           <Button
             size="small"
             variant="invisible"
             className={tableButtonClass}
             leadingVisual={TableIcon}
             aria-pressed={showTable}
-            onClick={() => setShowTable((shown) => !shown)}
+            onClick={() => void setParams({ table: !showTable })}
           >
             Table
           </Button>
@@ -226,7 +239,7 @@ export const StatsView: React.FC = () => {
                   types={typesForScope(candidate)}
                   selected={candidate === scope}
                   buckets={stats.buckets}
-                  onSelect={() => setScope(candidate)}
+                  onSelect={() => void setParams({ scope: candidate })}
                 />
               ))}
             </div>

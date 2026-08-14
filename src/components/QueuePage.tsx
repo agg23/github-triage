@@ -4,15 +4,8 @@ import { Blankslate } from "@primer/react/experimental";
 import { serializeRules } from "../../shared/query";
 import type { View } from "../../shared/types";
 import type { QueueRows } from "../queue";
-import type {
-  BucketId,
-  FilterOptions,
-  QueueTab,
-  SnoozeChoice,
-  SortId,
-  TriageItem,
-} from "../types";
-import type { StoredFilters } from "../useStoredFilters";
+import type { BucketId, FilterOptions, SnoozeChoice, TriageItem } from "../types";
+import type { QueueParams } from "../useQueueParams";
 import { FilterMenus } from "./FilterMenus";
 import { QueueList } from "./QueueList";
 import { SearchBar } from "./SearchBar";
@@ -21,16 +14,12 @@ interface QueuePageProps {
   loading: boolean;
   itemCount: number;
   views: View[];
-  stored: StoredFilters;
+  queue: QueueParams;
   options: FilterOptions;
   rows: QueueRows;
   byBucket: Map<BucketId, TriageItem[]>;
   flagged: TriageItem[];
   snoozed: TriageItem[];
-  activeTab: QueueTab;
-  onTabChange: (tab: QueueTab) => void;
-  sort: SortId;
-  onSortChange: (sort: SortId) => void;
   onSnooze: (item: TriageItem, choice: SnoozeChoice) => void;
   onWake: (item: TriageItem) => void;
   onFlag: (item: TriageItem) => void;
@@ -41,16 +30,12 @@ export const QueuePage: React.FC<QueuePageProps> = ({
   loading,
   itemCount,
   views,
-  stored,
+  queue,
   options,
   rows,
   byBucket,
   flagged,
   snoozed,
-  activeTab,
-  onTabChange,
-  sort,
-  onSortChange,
   onSnooze,
   onWake,
   onFlag,
@@ -83,13 +68,18 @@ export const QueuePage: React.FC<QueuePageProps> = ({
 
   return (
     <>
-      <SearchBar filters={stored.filters} setFilters={stored.setFilters} views={views} />
+      <SearchBar
+        filters={queue.filters}
+        setFilters={queue.setFilters}
+        setSearch={queue.setSearch}
+        views={views}
+      />
       <main>
         <QueueList
           filterMenus={
             <FilterMenus
-              filters={stored.filters}
-              setFilters={stored.setFilters}
+              filters={queue.filters}
+              setFilters={queue.setFilters}
               options={options}
               baselineQuery={serializeRules(defaultView?.rules ?? [])}
             />
@@ -97,15 +87,15 @@ export const QueuePage: React.FC<QueuePageProps> = ({
           byBucket={byBucket}
           flagged={flagged}
           snoozed={snoozed}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
+          activeTab={queue.tab}
+          onTabChange={queue.setTab}
           showRepo={options.repos.length > 1}
-          hideBots={stored.filters.hideBots}
-          sort={sort}
-          onSortChange={onSortChange}
+          hideBots={queue.filters.hideBots}
+          sort={queue.sort}
+          onSortChange={queue.setSort}
           mutedTotal={rows.mutedTotal}
-          hideMuted={stored.hideMuted}
-          onToggleMuted={stored.toggleMuted}
+          hideMuted={queue.hideMuted}
+          onToggleMuted={queue.toggleMuted}
           onSnooze={onSnooze}
           onWake={onWake}
           onFlag={onFlag}

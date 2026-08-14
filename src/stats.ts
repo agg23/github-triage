@@ -58,6 +58,8 @@ export const PRESETS = [
 
 export type PresetId = (typeof PRESETS)[number]["id"];
 
+export const PRESET_IDS = PRESETS.map((preset) => preset.id);
+
 export const DEFAULT_PRESET_ID: PresetId = "12w";
 
 export type ClassCounts = Record<ActorClass, number>;

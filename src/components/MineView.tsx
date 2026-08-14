@@ -1,6 +1,7 @@
 import { CheckIcon, GitPullRequestIcon, IssueOpenedIcon, PersonIcon } from "@primer/octicons-react";
 import { ActionList, ActionMenu, Flash, Spinner } from "@primer/react";
 import { Blankslate } from "@primer/react/experimental";
+import { parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 import type { Item, ItemState } from "../../shared/types";
 import { api, type SourceWithCount } from "../api";
@@ -9,13 +10,20 @@ import { enrich } from "../triage";
 import { ItemRow } from "./ItemRow";
 import listbox from "./QueueList.module.scss";
 
-type StateFilter = "open" | "closed";
+const STATE_FILTERS = ["open", "closed"] as const;
+type StateFilter = (typeof STATE_FILTERS)[number];
 
-type MineSort = "updated" | "created";
+const MINE_SORTS = ["updated", "created"] as const;
+type MineSort = (typeof MINE_SORTS)[number];
 
 const SORT_LABEL: Record<MineSort, string> = {
   updated: "Last updated",
   created: "Created",
+};
+
+const mineParsers = {
+  state: parseAsStringLiteral(STATE_FILTERS).withDefault("open"),
+  sort: parseAsStringLiteral(MINE_SORTS).withDefault("updated"),
 };
 
 const FETCH_LIMIT = "300";
@@ -49,8 +57,7 @@ interface MineViewProps {
 export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
   const { me } = useSettings();
   const metadata = useMemo(() => sectionMetadata(me)[section], [me, section]);
-  const [state, setState] = useState<StateFilter>("open");
-  const [sort, setSort] = useState<MineSort>("updated");
+  const [{ state, sort }, setParams] = useQueryStates(mineParsers, { history: "push" });
   const [fetched, setFetched] = useState<Record<StateFilter, Item[]> | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -137,7 +144,7 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
             <button
               className={stateTab("open")}
               aria-current={state === "open" || undefined}
-              onClick={() => setState("open")}
+              onClick={() => void setParams({ state: "open" })}
             >
               <OpenIcon size={16} />
               {(fetched?.open.length ?? 0).toLocaleString()} Open
@@ -145,7 +152,7 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
             <button
               className={stateTab("closed")}
               aria-current={state === "closed" || undefined}
-              onClick={() => setState("closed")}
+              onClick={() => void setParams({ state: "closed" })}
             >
               <CheckIcon size={16} />
               {(fetched?.closed.length ?? 0).toLocaleString()} Closed
@@ -158,11 +165,11 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
               </ActionMenu.Button>
               <ActionMenu.Overlay align="end">
                 <ActionList selectionVariant="single">
-                  {(Object.keys(SORT_LABEL) as MineSort[]).map((sortId) => (
+                  {MINE_SORTS.map((sortId) => (
                     <ActionList.Item
                       key={sortId}
                       selected={sort === sortId}
-                      onSelect={() => setSort(sortId)}
+                      onSelect={() => void setParams({ sort: sortId })}
                     >
                       {SORT_LABEL[sortId]}
                     </ActionList.Item>

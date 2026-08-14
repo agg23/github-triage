@@ -5,11 +5,13 @@ export type ActorClass = "team" | "trusted" | "external" | "bot";
 export const BUCKET_ORDER = ["attention", "new", "waiting", "bot"] as const;
 export type BucketId = (typeof BUCKET_ORDER)[number];
 
-export type QueueTab = BucketId | "flagged" | "snoozed";
+export const QUEUE_TABS = ["flagged", ...BUCKET_ORDER, "snoozed"] as const;
+export type QueueTab = (typeof QUEUE_TABS)[number];
 
 export type ForMeReason = "yours" | "review requested" | "assigned" | "involved";
 
-export type SortId = "recent" | "created" | "priority";
+export const SORT_IDS = ["recent", "created", "priority"] as const;
+export type SortId = (typeof SORT_IDS)[number];
 
 export interface Filters {
   query: string;

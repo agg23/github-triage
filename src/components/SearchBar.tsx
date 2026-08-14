@@ -9,10 +9,17 @@ import styles from "./Filters.module.scss";
 interface SearchBarProps {
   filters: Filters;
   setFilters: (filters: Filters) => void;
+  /** Represents typing events, which should not constantly push to history */
+  setSearch: (query: string) => void;
   views: View[];
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ filters, setFilters, views }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({
+  filters,
+  setFilters,
+  setSearch,
+  views,
+}) => {
   const { query } = filters;
   const setQuery = (next: string) => setFilters({ ...filters, query: next });
 
@@ -61,7 +68,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ filters, setFilters, views
         leadingVisual={SearchIcon}
         placeholder="Search all triage"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => setSearch(event.target.value)}
         trailingAction={
           <TextInput.Action
             icon={XIcon}

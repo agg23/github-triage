@@ -10,7 +10,8 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { Button, Flash, RelativeTime, UnderlineNav } from "@primer/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { MineView } from "./components/MineView";
 import { QueuePage } from "./components/QueuePage";
 import { SettingsView } from "./components/SettingsView";
@@ -19,32 +20,30 @@ import { StatsView } from "./components/StatsView";
 import { ViewsView } from "./components/ViewsView";
 import { LastOpenedProvider } from "./lastOpened";
 import { applyRules, filterOptionsFor, groupByBucket } from "./queue";
-import type { QueueTab, SortId } from "./types";
-import { useStoredFilters } from "./useStoredFilters";
+import { useQueueParams } from "./useQueueParams";
 import { useTriage } from "./useTriage";
 import styles from "./App.module.scss";
 
-const TABS = [
-  { id: "queue", label: "Queue", icon: IssueOpenedIcon },
-  { id: "authored", label: "Authored PRs", icon: GitPullRequestIcon },
-  { id: "assigned", label: "Assigned", icon: PersonIcon },
-  { id: "stats", label: "Stats", icon: GraphIcon },
-  { id: "views", label: "Views", icon: EyeIcon },
-  { id: "sources", label: "Sources", icon: RepoIcon },
-  { id: "settings", label: "Settings", icon: GearIcon },
+const QUEUE_PATH = "/queue";
+
+const SECTIONS = [
+  { path: QUEUE_PATH, label: "Queue", icon: IssueOpenedIcon },
+  { path: "/authored", label: "Authored PRs", icon: GitPullRequestIcon },
+  { path: "/assigned", label: "Assigned", icon: PersonIcon },
+  { path: "/stats", label: "Stats", icon: GraphIcon },
+  { path: "/views", label: "Views", icon: EyeIcon },
+  { path: "/sources", label: "Sources", icon: RepoIcon },
+  { path: "/settings", label: "Settings", icon: GearIcon },
 ] as const;
 
-type Tab = (typeof TABS)[number]["id"];
-
 export const App: React.FC = () => {
-  const [tab, setTab] = useState<Tab>("queue");
-  const [queueTab, setQueueTab] = useState<QueueTab>("attention");
-  const [sort, setSort] = useState<SortId>("recent");
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const triage = useTriage();
-  const stored = useStoredFilters(triage.views, triage.loading);
+  const queue = useQueueParams(triage.views, pathname === QUEUE_PATH);
 
   const { items } = triage;
-  const { filters, hideMuted } = stored;
+  const { filters, hideMuted, sort } = queue;
 
   const options = useMemo(() => filterOptionsFor(items), [items]);
 
@@ -56,42 +55,16 @@ export const App: React.FC = () => {
   const awake = useMemo(() => items.filter((item) => !item.snooze), [items]);
 
   const showFlagged = () => {
-    setTab("queue");
-    setQueueTab("flagged");
+    // Read the live URL rather than the router's: nuqs updates the query string shallowly, so
+    // react-router's own `search` doesn't see the filters currently applied
+    const params = new URLSearchParams(pathname === QUEUE_PATH ? window.location.search : "");
+
+    params.set("tab", "flagged");
+    void navigate(`${QUEUE_PATH}?${params}`);
   };
 
   const rows = useMemo(() => applyRules(awake, filters, hideMuted), [awake, filters, hideMuted]);
   const byBucket = useMemo(() => groupByBucket(rows.visible, sort), [rows.visible, sort]);
-
-  const tabContent: Record<Tab, React.ReactNode> = {
-    queue: (
-      <QueuePage
-        loading={triage.loading}
-        itemCount={items.length}
-        views={triage.views}
-        stored={stored}
-        options={options}
-        rows={rows}
-        byBucket={byBucket}
-        flagged={flagged}
-        snoozed={snoozed}
-        activeTab={queueTab}
-        onTabChange={setQueueTab}
-        sort={sort}
-        onSortChange={setSort}
-        onSnooze={triage.snooze}
-        onWake={triage.wake}
-        onFlag={triage.flag}
-        onUnflag={triage.unflag}
-      />
-    ),
-    authored: <MineView sources={triage.sources} section="authored" />,
-    assigned: <MineView sources={triage.sources} section="assigned" />,
-    stats: <StatsView />,
-    views: <ViewsView views={triage.views} onChanged={triage.reload} />,
-    sources: <SourcesView sources={triage.sources} onChanged={triage.reload} />,
-    settings: <SettingsView onChanged={triage.reload} />,
-  };
 
   return (
     <LastOpenedProvider>
@@ -131,19 +104,18 @@ export const App: React.FC = () => {
         </header>
 
         <UnderlineNav aria-label="Sections" className={styles.nav} hideIconsBreakpoint={null}>
-          {TABS.map((navTab) => (
+          {SECTIONS.map((section) => (
             <UnderlineNav.Item
-              key={navTab.id}
-              as="button"
-              aria-current={tab === navTab.id ? "page" : undefined}
-              leadingVisual={<navTab.icon />}
-              counter={navTab.id === "queue" && !triage.loading ? rows.shownCount : undefined}
-              onSelect={(event) => {
-                event.preventDefault();
-                setTab(navTab.id);
-              }}
+              key={section.path}
+              as={Link}
+              to={section.path}
+              aria-current={pathname === section.path ? "page" : undefined}
+              leadingVisual={<section.icon />}
+              counter={
+                section.path === QUEUE_PATH && !triage.loading ? rows.shownCount : undefined
+              }
             >
-              {navTab.label}
+              {section.label}
             </UnderlineNav.Item>
           ))}
         </UnderlineNav>
@@ -154,7 +126,38 @@ export const App: React.FC = () => {
           </Flash>
         )}
 
-        {tabContent[tab]}
+        <Routes>
+          <Route
+            path={QUEUE_PATH}
+            element={
+              <QueuePage
+                loading={triage.loading}
+                itemCount={items.length}
+                views={triage.views}
+                queue={queue}
+                options={options}
+                rows={rows}
+                byBucket={byBucket}
+                flagged={flagged}
+                snoozed={snoozed}
+                onSnooze={triage.snooze}
+                onWake={triage.wake}
+                onFlag={triage.flag}
+                onUnflag={triage.unflag}
+              />
+            }
+          />
+          <Route path="/authored" element={<MineView sources={triage.sources} section="authored" />} />
+          <Route path="/assigned" element={<MineView sources={triage.sources} section="assigned" />} />
+          <Route path="/stats" element={<StatsView />} />
+          <Route path="/views" element={<ViewsView views={triage.views} onChanged={triage.reload} />} />
+          <Route
+            path="/sources"
+            element={<SourcesView sources={triage.sources} onChanged={triage.reload} />}
+          />
+          <Route path="/settings" element={<SettingsView onChanged={triage.reload} />} />
+          <Route path="*" element={<Navigate to={QUEUE_PATH} replace />} />
+        </Routes>
       </div>
     </LastOpenedProvider>
   );
