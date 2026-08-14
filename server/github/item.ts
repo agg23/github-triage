@@ -44,6 +44,26 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
     }
   }
 
+  // The timeline has no event for an ordinary push, so use the tip commit's date
+  for (const { commit } of node.commits?.nodes ?? []) {
+    events.push({
+      actor: commit.author?.user ?? null,
+      at: commit.committedDate,
+      kind: "pushed",
+      url: commit.url,
+    });
+  }
+
+  // A force push can carry an older committedDate, so take the push time from GitHub's timeline
+  for (const forcePush of node.timelineItems?.nodes ?? []) {
+    events.push({
+      actor: forcePush.actor,
+      at: forcePush.createdAt,
+      kind: "pushed",
+      url: forcePush.afterCommit?.url,
+    });
+  }
+
   // GitHub does not expose an event for resolving a review thread, nor does it change updatedAt
   // Synthesize an event instead
   for (const thread of node.reviewThreads?.nodes ?? []) {

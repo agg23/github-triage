@@ -16,7 +16,7 @@ export interface Source {
 
 export type ItemType = "issue" | "pr";
 export type ItemGitHubState = "OPEN" | "CLOSED" | "MERGED";
-export type ActionKind = "opened" | "commented" | "reviewed" | "resolved";
+export type ActionKind = "opened" | "commented" | "reviewed" | "resolved" | "pushed";
 
 export interface ItemLabel {
   name: string;

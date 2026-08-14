@@ -52,6 +52,18 @@ export const PR_FIELDS = `
   reviewRequests(first: 10) {
     nodes { requestedReviewer { ... on User { login } } }
   }
+  commits(last: 1) {
+    nodes { commit { committedDate url author { user { login __typename } } } }
+  }
+  timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
+    nodes {
+      ... on HeadRefForcePushedEvent {
+        createdAt
+        actor { login __typename }
+        afterCommit { url }
+      }
+    }
+  }
 `;
 
 export const fieldsFor = (connection: Connection): string =>
@@ -103,6 +115,21 @@ export interface RawReviewRequest {
   requestedReviewer: { login?: string } | null;
 }
 
+export interface RawCommit {
+  commit: {
+    committedDate: string;
+    url?: string;
+    // null when the commit email is not linked to a GitHub account
+    author: { user: Actor | null } | null;
+  };
+}
+
+export interface RawForcePush {
+  createdAt: string;
+  actor: Actor | null;
+  afterCommit: { url?: string } | null;
+}
+
 export interface RawDetailNode {
   __typename?: string;
   id: string;
@@ -134,6 +161,8 @@ export interface RawNode extends RawDetailNode {
   latestReviews?: Connected<RawReview>;
   reviewThreads?: Connected<RawReviewThread>;
   reviewRequests?: Connected<RawReviewRequest>;
+  commits?: Connected<RawCommit>;
+  timelineItems?: Connected<RawForcePush>;
 }
 
 export interface PageInfo {
