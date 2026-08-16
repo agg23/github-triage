@@ -87,6 +87,10 @@ export const itemDetails = sqliteTable("item_details", {
   additions: integer("additions"),
   deletions: integer("deletions"),
   changedFiles: integer("changed_files"),
+  baseRef: text("base_ref"),
+  headRef: text("head_ref"),
+  commitCount: integer("commit_count"),
+  checksState: text("checks_state"),
   fetchedAt: text("fetched_at").notNull(),
 });
 

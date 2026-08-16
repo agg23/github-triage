@@ -121,6 +121,10 @@ export const toDetail = (node: RawDetailNode): ItemDetail => ({
   additions: node.additions ?? null,
   deletions: node.deletions ?? null,
   changedFiles: node.changedFiles ?? null,
+  baseRef: node.baseRefName ?? null,
+  headRef: node.headRefName ?? null,
+  commitCount: node.commits?.totalCount ?? null,
+  checksState: node.commits?.nodes[0]?.commit.statusCheckRollup?.state ?? null,
   fetchedAt: new Date().toISOString(),
 });
 

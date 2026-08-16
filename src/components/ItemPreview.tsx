@@ -1,5 +1,20 @@
-import { CommentIcon, FileDiffIcon } from "@primer/octicons-react";
-import { Label, type LabelProps, Overlay, RelativeTime, Spinner } from "@primer/react";
+import {
+  CheckCircleFillIcon,
+  ClockIcon,
+  CommentIcon,
+  FileDiffIcon,
+  GitCommitIcon,
+  XCircleFillIcon,
+} from "@primer/octicons-react";
+import {
+  Avatar,
+  IssueLabelToken,
+  Label,
+  type LabelProps,
+  Overlay,
+  RelativeTime,
+  Spinner,
+} from "@primer/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailComment, ItemDetail } from "../../shared/types";
 import { api } from "../api";
@@ -198,34 +213,137 @@ const CommentExcerpt: React.FC<CommentExcerptProps> = ({ comment }) => {
   );
 };
 
-interface DiffStatProps {
+interface ChecksProps {
+  state: string;
+}
+
+const Checks: React.FC<ChecksProps> = ({ state }) => {
+  if (state === "SUCCESS") {
+    return (
+      <span className={`${styles.badge} ${styles.checksOk}`}>
+        <CheckCircleFillIcon size={12} /> checks passing
+      </span>
+    );
+  }
+
+  if (state === "FAILURE" || state === "ERROR") {
+    return (
+      <span className={`${styles.badge} ${styles.checksFail}`}>
+        <XCircleFillIcon size={12} /> checks failing
+      </span>
+    );
+  }
+
+  return (
+    <span className={`${styles.badge} ${styles.checksPending}`}>
+      <ClockIcon size={12} /> checks pending
+    </span>
+  );
+};
+
+interface StatsProps {
   detail: ItemDetail;
 }
 
-const DiffStat: React.FC<DiffStatProps> = ({ detail }) => {
-  const { additions, deletions, changedFiles } = detail;
+const Stats: React.FC<StatsProps> = ({ detail }) => {
+  const { additions, deletions, changedFiles, commitCount, baseRef, headRef, checksState } = detail;
 
-  if (typeof additions !== "number") {
+  // Only pull requests carry any of this
+  if (!baseRef && typeof additions !== "number") {
     return null;
   }
 
   return (
-    <>
-      <span className={rowStyles.metaSep}>·</span>
-      <span>
-        {changedFiles} {changedFiles === 1 ? "file" : "files"}
-      </span>
-      <span className={styles.added}>+{additions.toLocaleString()}</span>
-      <span className={styles.removed}>−{(deletions ?? 0).toLocaleString()}</span>
-    </>
+    <div className={styles.stats}>
+      {baseRef && (
+        <span className={styles.badge}>
+          <code>{baseRef}</code>
+          <span className={styles.arrow}>←</span>
+          <code>{headRef}</code>
+        </span>
+      )}
+      {typeof commitCount === "number" && (
+        <span className={styles.stat}>
+          <GitCommitIcon size={12} />
+          {commitCount} {commitCount === 1 ? "commit" : "commits"}
+        </span>
+      )}
+      {typeof additions === "number" && (
+        <span className={styles.stat}>
+          <FileDiffIcon size={12} />
+          {changedFiles} {changedFiles === 1 ? "file" : "files"}
+          <span className={styles.added}>+{additions.toLocaleString()}</span>
+          <span className={styles.removed}>−{(deletions ?? 0).toLocaleString()}</span>
+        </span>
+      )}
+      {checksState && <Checks state={checksState} />}
+    </div>
+  );
+};
+
+interface PeopleProps {
+  title: string;
+  logins: string[];
+}
+
+const People: React.FC<PeopleProps> = ({ title, logins }) => (
+  <div className={styles.section}>
+    <div className={styles.sectionTitle}>{title}</div>
+    {logins.map((login) => (
+      <a
+        key={login}
+        className={styles.person}
+        href={`https://github.com/${login}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <Avatar src={`https://github.com/${login}.png?size=32`} size={16} />
+        {login}
+      </a>
+    ))}
+  </div>
+);
+
+interface SidebarProps {
+  item: TriageItem;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ item }) => {
+  // A request is still pending, a reviewer has already submitted
+  const reviewers = [...new Set([...item.reviewers, ...item.reviewRequests])];
+
+  if (reviewers.length === 0 && item.labels.length === 0) {
+    return null;
+  }
+
+  return (
+    <aside className={styles.sidebar}>
+      {reviewers.length > 0 && <People title="Reviewers" logins={reviewers} />}
+      {item.labels.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>Labels</div>
+          <div className={styles.labels}>
+            {item.labels.map((label) => (
+              <IssueLabelToken
+                key={label.name}
+                text={label.name}
+                fillColor={`#${label.color}`}
+                size="small"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </aside>
   );
 };
 
 interface CardBodyProps {
+  item: TriageItem;
   loaded: Loaded | undefined;
 }
 
-const CardBody: React.FC<CardBodyProps> = ({ loaded }) => {
+const CardBody: React.FC<CardBodyProps> = ({ item, loaded }) => {
   if (!loaded) {
     return (
       <div className={styles.center}>
@@ -248,23 +366,29 @@ const CardBody: React.FC<CardBodyProps> = ({ loaded }) => {
 
   return (
     <>
-      {bodyHTML ? (
-        <Excerpt html={bodyHTML} className={styles.body} />
-      ) : (
-        <p className={styles.empty}>No description</p>
-      )}
-      {commentCount > 0 && (
-        <div className={styles.comments}>
-          <div className={styles.commentsHead}>
-            {commentCount} {commentCount === 1 ? "comment" : "comments"}
-            {/* The count is every comment, but bots and the cache limit what we can show */}
-            {shown.length > 0 && shown.length < commentCount && ` · last ${shown.length}`}
-          </div>
-          {shown.map((comment) => (
-            <CommentExcerpt key={`${comment.author}-${comment.createdAt}`} comment={comment} />
-          ))}
+      <Stats detail={loaded.detail} />
+      <div className={styles.columns}>
+        <div className={styles.conversation}>
+          {bodyHTML ? (
+            <Excerpt html={bodyHTML} className={styles.body} />
+          ) : (
+            <p className={styles.empty}>No description</p>
+          )}
+          {commentCount > 0 && (
+            <div className={styles.comments}>
+              <div className={styles.commentsHead}>
+                {commentCount} {commentCount === 1 ? "comment" : "comments"}
+                {/* The count is every comment, but bots and the cache limit what we can show */}
+                {shown.length > 0 && shown.length < commentCount && ` · last ${shown.length}`}
+              </div>
+              {shown.map((comment) => (
+                <CommentExcerpt key={`${comment.author}-${comment.createdAt}`} comment={comment} />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+        <Sidebar item={item} />
+      </div>
     </>
   );
 };
@@ -398,17 +522,17 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
                   {item.repo} #{item.number}
                 </span>
                 <span className={rowStyles.metaSep}>·</span>
+                <Avatar src={`https://github.com/${item.author}.png?size=32`} size={16} />
                 <ActorLink login={item.author} actorClass={item.authorClass} />
                 <span>
                   opened <RelativeTime datetime={item.createdAt} />
                 </span>
-                {loaded?.detail && <DiffStat detail={loaded.detail} />}
               </div>
             </div>
           </div>
 
           <div ref={contentRef} className={styles.content}>
-            <CardBody loaded={loaded} />
+            <CardBody item={item} loaded={loaded} />
           </div>
           {overflowed && <div className={styles.footer}>…</div>}
         </Overlay>

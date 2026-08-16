@@ -14,6 +14,12 @@ export const DETAIL_FIELDS = `
 
 export const PR_DETAIL_FIELDS = `
   additions deletions changedFiles
+  baseRefName headRefName
+  # PR_FIELDS asks for commits(last: 1) too, and GraphQL merges the selections
+  commits(last: 1) {
+    totalCount
+    nodes { commit { statusCheckRollup { state } } }
+  }
   reviews(last: ${DETAIL_COMMENTS}) {
     totalCount
     nodes {
@@ -121,6 +127,7 @@ export interface RawCommit {
     url?: string;
     // null when the commit email is not linked to a GitHub account
     author: { user: Actor | null } | null;
+    statusCheckRollup?: { state: string } | null;
   };
 }
 
@@ -139,6 +146,9 @@ export interface RawDetailNode {
   additions?: number;
   deletions?: number;
   changedFiles?: number;
+  baseRefName?: string;
+  headRefName?: string;
+  commits?: Connected<RawCommit>;
   reviews?: Connected<RawReview>;
 }
 
@@ -161,7 +171,6 @@ export interface RawNode extends RawDetailNode {
   latestReviews?: Connected<RawReview>;
   reviewThreads?: Connected<RawReviewThread>;
   reviewRequests?: Connected<RawReviewRequest>;
-  commits?: Connected<RawCommit>;
   timelineItems?: Connected<RawForcePush>;
 }
 

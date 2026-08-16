@@ -70,6 +70,11 @@ export interface ItemDetail {
   additions: number | null;
   deletions: number | null;
   changedFiles: number | null;
+  baseRef: string | null;
+  headRef: string | null;
+  commitCount: number | null;
+  /** GraphQL StatusState of the tip commit. Null when the repo has no checks */
+  checksState: string | null;
   fetchedAt: string;
 }
 
