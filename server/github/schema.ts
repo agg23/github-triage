@@ -41,6 +41,8 @@ export const PR_FIELDS = `
   ${PR_DETAIL_FIELDS}
   prState: state
   isDraft
+  stack { number size }
+  stackEntry { position }
   latestReviews(first: 10) { nodes { author { login __typename } submittedAt } }
   reviewThreads(last: 15) {
     nodes {
@@ -122,6 +124,15 @@ export interface RawCommit {
   };
 }
 
+export interface RawStack {
+  number: number;
+  size: number;
+}
+
+export interface RawStackEntry {
+  position: number;
+}
+
 export interface RawForcePush {
   createdAt: string;
   actor: Actor | null;
@@ -160,6 +171,9 @@ export interface RawNode extends RawDetailNode {
   reviewRequests?: Connected<RawReviewRequest>;
   commits?: Connected<RawCommit>;
   timelineItems?: Connected<RawForcePush>;
+  // Null unless the pull request belongs to a stack
+  stack?: RawStack | null;
+  stackEntry?: RawStackEntry | null;
 }
 
 export interface PageInfo {

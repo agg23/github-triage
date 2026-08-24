@@ -50,6 +50,12 @@ export interface Item {
   lastActivityAt: string;
   lastActionKind: ActionKind | null;
   lastCommentUrl: string | null;
+  /** Identifies the stack within its repository. Null unless the PR belongs to a stack */
+  stackNumber: number | null;
+  /** How many pull requests the stack holds */
+  stackSize: number | null;
+  /** Position in the stack, where 1 sits closest to the base branch */
+  stackPosition: number | null;
   fetchedAt: string;
 }
 

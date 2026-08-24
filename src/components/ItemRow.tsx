@@ -6,6 +6,7 @@ import {
   GitPullRequestIcon,
   IssueClosedIcon,
   IssueOpenedIcon,
+  StackIcon,
 } from "@primer/octicons-react";
 import {
   Button,
@@ -16,7 +17,7 @@ import {
   RelativeTime,
 } from "@primer/react";
 import type { ItemState } from "../../shared/types";
-import { useLastOpened } from "../lastOpened";
+import { useItemHighlight } from "../itemHighlight";
 import type { ActorClass, ForMeReason, SnoozeChoice, TriageItem } from "../types";
 import { ItemPreview } from "./ItemPreview";
 import { SnoozeActions } from "./SnoozeMenu";
@@ -148,6 +149,45 @@ export const ActorLink: React.FC<ActorLinkProps> = ({ login, actorClass }) => (
   </>
 );
 
+/** Identifies the stack an item belongs to, since stack numbers are per repository */
+const stackKeyOf = (item: TriageItem): string | undefined =>
+  item.stackNumber === null ? undefined : `${item.repo}#${item.stackNumber}`;
+
+interface StackChipProps {
+  item: TriageItem;
+}
+
+/** Mirrors GitHub's own stack badge: the stack icon and "position/size" */
+const StackChip: React.FC<StackChipProps> = ({ item }) => {
+  const { setHoveredStack } = useItemHighlight();
+  const key = stackKeyOf(item);
+
+  if (!key || !item.stackSize || !item.stackPosition) {
+    return null;
+  }
+
+  // Hovering the chip lights up the rest of the stack, so it has to be reachable without a mouse
+  const highlight = () => setHoveredStack(key);
+  const clear = () => setHoveredStack(undefined);
+
+  return (
+    <Label
+      size="small"
+      variant="secondary"
+      className={styles.stackChip}
+      title={`Stack #${item.stackNumber} — ${item.stackPosition} of ${item.stackSize}`}
+      tabIndex={0}
+      onMouseEnter={highlight}
+      onMouseLeave={clear}
+      onFocus={highlight}
+      onBlur={clear}
+    >
+      <StackIcon size={12} />
+      {item.stackPosition}/{item.stackSize}
+    </Label>
+  );
+};
+
 interface ItemRowProps {
   item: TriageItem;
   showRepo?: boolean;
@@ -165,7 +205,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   onFlag,
   onUnflag,
 }) => {
-  const { lastOpenedId: lastOpened, markOpened } = useLastOpened();
+  const { lastOpenedId: lastOpened, markOpened, hoveredStack } = useItemHighlight();
   const openerIsLast =
     item.lastActionKind === "opened" ||
     (item.lastActor === item.author && item.lastActivityAt === item.createdAt);
@@ -194,6 +234,10 @@ export const ItemRow: React.FC<ItemRowProps> = ({
     classNames.push(styles.flagged);
   }
 
+  if (hoveredStack && stackKeyOf(item) === hoveredStack) {
+    classNames.push(styles.stackPeer);
+  }
+
   return (
     <div className={classNames.join(" ")}>
       <div className={styles.state} title={stateTitleOf(item)}>
@@ -205,6 +249,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
           <ItemPreview item={item} className={styles.title}>
             {item.title}
           </ItemPreview>
+          <StackChip item={item} />
           {item.labels.slice(0, MAX_LABELS).map((label) => (
             // "medium" (20px) matches Label size="small" so the pills align
             <IssueLabelToken

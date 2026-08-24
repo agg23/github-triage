@@ -32,6 +32,13 @@
   background: var(--bgColor-accent-muted);
 }
 
+/* Every visible member of the stack whose chip is hovered, the hovered row included. Compounded
+   with .item so the whole group washes the same way, rather than the pointed-at row taking
+   .item:hover instead */
+.item.stackPeer {
+  background: var(--bgColor-neutral-muted);
+}
+
 .mine {
   box-shadow: inset 3px 0 0 var(--fgColor-accent);
 }
@@ -155,4 +162,11 @@
   stroke: currentColor;
   stroke-width: 1.75;
   stroke-linecap: round;
+}
+
+.stackChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
 }

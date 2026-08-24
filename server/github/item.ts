@@ -166,6 +166,9 @@ export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number):
     lastActivityAt: last.at,
     lastActionKind: last.kind,
     lastCommentUrl: newestLinkable?.url ?? null,
+    stackNumber: node.stack?.number ?? null,
+    stackSize: node.stack?.size ?? null,
+    stackPosition: node.stackEntry?.position ?? null,
     fetchedAt: new Date().toISOString(),
   };
 };

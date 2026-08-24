@@ -74,6 +74,10 @@ export const items = sqliteTable("items", {
   lastActivityAt: text("last_activity_at").notNull(),
   lastActionKind: text("last_action_kind").$type<ActionKind>(),
   lastCommentUrl: text("last_comment_url"),
+  // Set only for pull requests that belong to a stack
+  stackNumber: integer("stack_number"),
+  stackSize: integer("stack_size"),
+  stackPosition: integer("stack_position"),
   fetchedAt: text("fetched_at").notNull(),
 });
 

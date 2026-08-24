@@ -18,7 +18,7 @@ import { SettingsView } from "./components/SettingsView";
 import { SourcesView } from "./components/SourcesView";
 import { StatsView } from "./components/StatsView";
 import { ViewsView } from "./components/ViewsView";
-import { LastOpenedProvider } from "./lastOpened";
+import { ItemHighlightProvider } from "./itemHighlight";
 import { applyRules, filterOptionsFor, groupByBucket } from "./queue";
 import { useQueueParams } from "./useQueueParams";
 import { useTriage } from "./useTriage";
@@ -67,7 +67,7 @@ export const App: React.FC = () => {
   const byBucket = useMemo(() => groupByBucket(rows.visible, sort), [rows.visible, sort]);
 
   return (
-    <LastOpenedProvider>
+    <ItemHighlightProvider>
       <div className={styles.shell}>
         <header className={styles.head}>
           <h1>Triage</h1>
@@ -159,6 +159,6 @@ export const App: React.FC = () => {
           <Route path="*" element={<Navigate to={QUEUE_PATH} replace />} />
         </Routes>
       </div>
-    </LastOpenedProvider>
+    </ItemHighlightProvider>
   );
 };
