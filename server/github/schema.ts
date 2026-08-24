@@ -53,14 +53,13 @@ export const PR_FIELDS = `
     nodes { requestedReviewer { ... on User { login } } }
   }
   commits(last: 1) {
-    nodes { commit { committedDate url author { user { login __typename } } } }
+    nodes { commit { committedDate author { user { login __typename } } } }
   }
   timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
     nodes {
       ... on HeadRefForcePushedEvent {
         createdAt
         actor { login __typename }
-        afterCommit { url }
       }
     }
   }
@@ -118,7 +117,6 @@ export interface RawReviewRequest {
 export interface RawCommit {
   commit: {
     committedDate: string;
-    url?: string;
     // null when the commit email is not linked to a GitHub account
     author: { user: Actor | null } | null;
   };
@@ -127,7 +125,6 @@ export interface RawCommit {
 export interface RawForcePush {
   createdAt: string;
   actor: Actor | null;
-  afterCommit: { url?: string } | null;
 }
 
 export interface RawDetailNode {

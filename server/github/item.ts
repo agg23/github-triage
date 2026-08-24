@@ -17,7 +17,7 @@ interface ItemEvent {
   actor: Actor | null;
   at: string;
   kind: ActionKind;
-  /** Anchor URL of the comment/review behind this event, if any */
+  /** Anchor URL of the comment/review behind this event, if any. Pushes have none */
   url?: string;
 }
 
@@ -50,7 +50,6 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
       actor: commit.author?.user ?? null,
       at: commit.committedDate,
       kind: "pushed",
-      url: commit.url,
     });
   }
 
@@ -60,7 +59,6 @@ const eventsOf = (node: RawNode): ItemEvent[] => {
       actor: forcePush.actor,
       at: forcePush.createdAt,
       kind: "pushed",
-      url: forcePush.afterCommit?.url,
     });
   }
 
@@ -130,8 +128,8 @@ export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number):
   // Last non-bot entry
   const last =
     [...events].reverse().find((event) => !isBot(event.actor)) ?? events[events.length - 1];
-  // Actual last entry
-  const newest = events[events.length - 1];
+  // Newest entry we can link to on the item's page; pushes are not anchorable
+  const newestLinkable = [...events].reverse().find((event) => event.url);
 
   return {
     id: node.id,
@@ -167,7 +165,7 @@ export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number):
     lastActorType: last.actor?.__typename ?? "User",
     lastActivityAt: last.at,
     lastActionKind: last.kind,
-    lastCommentUrl: newest.url ?? null,
+    lastCommentUrl: newestLinkable?.url ?? null,
     fetchedAt: new Date().toISOString(),
   };
 };

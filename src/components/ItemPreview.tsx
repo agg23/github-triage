@@ -349,7 +349,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
       <a
         ref={anchorRef}
         className={className}
-        href={item.url}
+        href={item.lastCommentUrl ?? item.url}
         target="_blank"
         rel="noreferrer"
         onMouseEnter={() => schedule(true, OPEN_DELAY_MS)}
@@ -385,7 +385,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
               <div className={rowStyles.titleLine}>
                 <a
                   className={rowStyles.title}
-                  href={item.url}
+                  href={item.lastCommentUrl ?? item.url}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => markOpened(item.id)}
