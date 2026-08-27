@@ -50,7 +50,8 @@ itemRoutes.get("/items", (context) => {
     .select()
     .from(items)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(items.lastActivityAt))
+    // Ordering by the derived column keeps a conflict from being truncated off the page as stale
+    .orderBy(desc(items.activityAt))
     .limit(limit)
     .all();
 

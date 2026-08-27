@@ -29,12 +29,19 @@ export const classify = (login: string | undefined, typename?: string): ActorCla
 };
 
 export const bucketOf = (
-  item: Pick<TriageItem, "type" | "authorClass" | "lastActorClass" | "author" | "lastActor">,
+  item: Pick<
+    TriageItem,
+    "type" | "authorClass" | "lastActorClass" | "author" | "lastActor" | "conflictedSince"
+  >,
 ): BucketId => {
   const { me } = getSettings();
 
   if (item.type === "pr" && item.authorClass === "team") {
     if (me && item.author === me) {
+      if (item.conflictedSince) {
+        return "attention";
+      }
+
       return item.lastActor === me ? "waiting" : "attention";
     }
 
@@ -72,8 +79,9 @@ export const enrich = (
   };
 
   const forMeReasons: ForMeReason[] = [];
+  const someoneElseActed = item.lastActor !== me || item.conflictedSince !== null;
 
-  if (me && item.lastActor !== me) {
+  if (me && someoneElseActed) {
     if (item.author === me) {
       forMeReasons.push("yours");
     }

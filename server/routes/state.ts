@@ -15,7 +15,7 @@ const woken = (now: string) => sql`
   item_id in (
     select s.item_id from item_state s join items i on i.id = s.item_id
     where (s.wake_at is not null and s.wake_at <= ${now})
-       or (s.wake_on_activity_after is not null and i.last_activity_at > s.wake_on_activity_after)
+       or (s.wake_on_activity_after is not null and i.activity_at > s.wake_on_activity_after)
   )
 `;
 
@@ -71,7 +71,7 @@ stateRoutes.put("/items/:id/state", async (context) => {
     return context.json({ error: "item not found" }, 404);
   }
 
-  const wakeOnActivityAfter = body.wakeOnActivity ? item.lastActivityAt : null;
+  const wakeOnActivityAfter = body.wakeOnActivity ? item.activityAt : null;
   const row = db
     .insert(itemState)
     .values({ itemId: id, wakeAt, wakeOnActivityAfter, createdAt: new Date().toISOString() })

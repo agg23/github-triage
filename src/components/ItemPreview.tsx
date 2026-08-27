@@ -1,4 +1,4 @@
-import { CommentIcon, FileDiffIcon, RepoPushIcon } from "@primer/octicons-react";
+import { AlertIcon, CommentIcon, FileDiffIcon, RepoPushIcon } from "@primer/octicons-react";
 import { Label, type LabelProps, Overlay, RelativeTime, Spinner } from "@primer/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailComment, ItemDetail } from "../../shared/types";
@@ -421,6 +421,23 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
                   opened <RelativeTime datetime={item.createdAt} />
                 </span>
                 {loaded?.detail && <DiffStat detail={loaded.detail} />}
+                {item.mergeable === "CONFLICTING" && (
+                  <>
+                    <span className={rowStyles.metaSep}>·</span>
+                    <span className={styles.conflict}>
+                      <AlertIcon size={12} />
+                      {item.conflictedSince ? (
+                        <>
+                          {" "}
+                          conflicts since <RelativeTime datetime={item.conflictedSince} />
+                        </>
+                      ) : (
+                        // Already conflicting when we first saw it, so we have no date to show
+                        " conflicts"
+                      )}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -18,6 +18,10 @@ export type ItemType = "issue" | "pr";
 export type ItemGitHubState = "OPEN" | "CLOSED" | "MERGED";
 export type ActionKind = "opened" | "commented" | "reviewed" | "resolved" | "pushed";
 
+/** GitHub's mergeability verdict. UNKNOWN means "not computed yet", never "resolved" */
+export const MERGEABLE_STATES = ["MERGEABLE", "CONFLICTING", "UNKNOWN"] as const;
+export type MergeableState = (typeof MERGEABLE_STATES)[number];
+
 export interface ItemLabel {
   name: string;
   color: string;
@@ -50,6 +54,16 @@ export interface Item {
   lastActivityAt: string;
   lastActionKind: ActionKind | null;
   lastCommentUrl: string | null;
+  /** Last mergeability we saw. Null for issues, and for PRs cached before we tracked it */
+  mergeable: MergeableState | null;
+  /**
+   * When we first witnessed this pull request become CONFLICTING
+   */
+  conflictedSince: string | null;
+  /**
+   * The newest thing that occurred for this item
+   */
+  activityAt: string;
   /** Identifies the stack within its repository. Null unless the PR belongs to a stack */
   stackNumber: number | null;
   /** How many pull requests the stack holds */
@@ -58,6 +72,9 @@ export interface Item {
   stackPosition: number | null;
   fetchedAt: string;
 }
+
+/** An item as GitHub hands it to us, before the database derives `activityAt` */
+export type FetchedItem = Omit<Item, "activityAt">;
 
 export interface DetailComment {
   author: string;

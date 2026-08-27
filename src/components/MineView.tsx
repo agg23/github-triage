@@ -103,7 +103,7 @@ export const MineView: React.FC<MineViewProps> = ({ sources, section }) => {
     }
 
     const noItemState = new Map<string, ItemState>();
-    const timeOf = (item: Item) => (sort === "created" ? item.createdAt : item.lastActivityAt);
+    const timeOf = (item: Item) => (sort === "created" ? item.createdAt : item.activityAt);
 
     return fetched[state]
       .map((item) => enrich(item, priorityBySource, noItemState))

@@ -1,4 +1,5 @@
 import {
+  AlertIcon,
   FlagIcon,
   GitMergeIcon,
   GitPullRequestClosedIcon,
@@ -188,6 +189,33 @@ const StackChip: React.FC<StackChipProps> = ({ item }) => {
   );
 };
 
+interface ConflictChipProps {
+  item: TriageItem;
+}
+
+/** A conflict is not an event, so GitHub can only tell us it exists, not always when it appeared */
+const ConflictChip: React.FC<ConflictChipProps> = ({ item }) => {
+  if (item.mergeable !== "CONFLICTING") {
+    return null;
+  }
+
+  return (
+    <Label
+      size="small"
+      variant="danger"
+      className={styles.conflictChip}
+      title={
+        item.conflictedSince
+          ? `Merge conflicts appeared ${item.conflictedSince}`
+          : "Merge conflicts, unknown date"
+      }
+    >
+      <AlertIcon size={12} />
+      conflicts
+    </Label>
+  );
+};
+
 interface ItemRowProps {
   item: TriageItem;
   showRepo?: boolean;
@@ -250,6 +278,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
             {item.title}
           </ItemPreview>
           <StackChip item={item} />
+          <ConflictChip item={item} />
           {item.labels.slice(0, MAX_LABELS).map((label) => (
             // "medium" (20px) matches Label size="small" so the pills align
             <IssueLabelToken
@@ -321,6 +350,14 @@ export const ItemRow: React.FC<ItemRowProps> = ({
               )}
               <span>
                 {lastVerb} <RelativeTime datetime={item.lastActivityAt} />
+              </span>
+            </>
+          )}
+          {item.conflictedSince && (
+            <>
+              <span className={styles.metaSep}>·</span>
+              <span title="The base branch moved under this pull request">
+                developed conflicts <RelativeTime datetime={item.conflictedSince} />
               </span>
             </>
           )}

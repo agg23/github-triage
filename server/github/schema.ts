@@ -1,3 +1,5 @@
+import type { MergeableState } from "../../shared/types";
+
 export const CONNECTIONS = ["issues", "pullRequests"] as const;
 export type Connection = (typeof CONNECTIONS)[number];
 
@@ -41,6 +43,7 @@ export const PR_FIELDS = `
   ${PR_DETAIL_FIELDS}
   prState: state
   isDraft
+  mergeable
   stack { number size }
   stackEntry { position }
   latestReviews(first: 10) { nodes { author { login __typename } submittedAt } }
@@ -161,6 +164,8 @@ export interface RawNode extends RawDetailNode {
   issueState?: string;
   prState?: string;
   isDraft?: boolean;
+  // GitHub computes mergeability lazily, so the first read of a PR often answers UNKNOWN
+  mergeable?: MergeableState;
   author: Actor | null;
   repository: { nameWithOwner: string };
   labels: Connected<RawLabel>;

@@ -5,6 +5,7 @@ import {
   type ActionKind,
   type DetailComment,
   type ItemLabel,
+  type MergeableState,
   type ViewRule,
 } from "../../shared/types";
 
@@ -74,6 +75,13 @@ export const items = sqliteTable("items", {
   lastActivityAt: text("last_activity_at").notNull(),
   lastActionKind: text("last_action_kind").$type<ActionKind>(),
   lastCommentUrl: text("last_comment_url"),
+  // Virtual column representing the different activity sources
+  activityAt: text("activity_at").generatedAlwaysAs(
+    sql`max(last_activity_at, coalesce(conflicted_since, ''))`,
+    { mode: "virtual" },
+  ),
+  mergeable: text("mergeable").$type<MergeableState>(),
+  conflictedSince: text("conflicted_since"),
   // Set only for pull requests that belong to a stack
   stackNumber: integer("stack_number"),
   stackSize: integer("stack_size"),

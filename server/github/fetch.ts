@@ -1,4 +1,4 @@
-import type { Item, ItemDetail, Source, SourceKind, SyncStats } from "../../shared/types";
+import type { FetchedItem, ItemDetail, Source, SourceKind, SyncStats } from "../../shared/types";
 import { GitHubError, fetchGraphQl, fetchRestSearch, REST_PER_PAGE } from "./client";
 import { toDetail, toItem } from "./item";
 import {
@@ -21,7 +21,7 @@ export type OwnerKind = Exclude<SourceKind, "repo">;
 /**
  * Called as each page of data is retrieved
  */
-export type FetchSink = (items: Item[], details: ItemDetail[]) => void;
+export type FetchSink = (items: FetchedItem[], details: ItemDetail[]) => void;
 
 export interface FetchPage {
   /** How many items were handed to the sink */
@@ -77,7 +77,7 @@ export const fetchRepoUpdatedSince = async (
       pages += 1;
 
       const page = data.repository[connection];
-      const fetched: Item[] = [];
+      const fetched: FetchedItem[] = [];
       const details: ItemDetail[] = [];
       let reachedOld = false;
 
@@ -149,9 +149,12 @@ const restSearchNodeIds = async (search: string, onPage?: OnPage): Promise<Searc
   }
 };
 
+/** Which source a hydrated node belongs to, since one batch can span several of them */
+type SourceOf = (nodeId: string) => number;
+
 const hydrateNodes = async (
   ids: string[],
-  sourceId: number,
+  sourceOf: SourceOf,
   sink: FetchSink,
   onPage?: OnPage,
 ): Promise<FetchPage> => {
@@ -174,12 +177,12 @@ const hydrateNodes = async (
     rateLimitRemaining = data.rateLimit?.remaining ?? rateLimitRemaining;
     pages += 1;
 
-    const fetched: Item[] = [];
+    const fetched: FetchedItem[] = [];
     const details: ItemDetail[] = [];
 
     for (const node of data.nodes ?? []) {
       if (node?.__typename) {
-        fetched.push(toItem(node, node.__typename === "PullRequest", sourceId));
+        fetched.push(toItem(node, node.__typename === "PullRequest", sourceOf(node.id)));
         details.push(toDetail(node));
       }
     }
@@ -191,6 +194,16 @@ const hydrateNodes = async (
 
   return { written, rateLimitRemaining, pages };
 };
+
+/**
+ * Re-read items we already know about in full, for changes GitHub does not report as activity
+ */
+export const fetchByNodeIds = (
+  ids: string[],
+  sourceOf: SourceOf,
+  sink: FetchSink,
+  onPage?: OnPage,
+): Promise<FetchPage> => hydrateNodes(ids, sourceOf, sink, onPage);
 
 export const fetchOwnerUpdatedSince = async (
   kind: OwnerKind,
@@ -211,7 +224,7 @@ export const fetchOwnerUpdatedSince = async (
     requestCount += result.requests;
   }
 
-  const hydrated = await hydrateNodes(ids, sourceId, sink, onPage);
+  const hydrated = await hydrateNodes(ids, () => sourceId, sink, onPage);
 
   return { ...hydrated, pages: hydrated.pages + requestCount };
 };

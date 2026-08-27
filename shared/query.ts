@@ -172,6 +172,8 @@ const matchTerm = (term: QueryTerm, item: Item): boolean => {
           return item.state === "MERGED";
         case "draft":
           return item.isDraft;
+        case "conflicting":
+          return item.mergeable === "CONFLICTING";
         default:
           return false;
       }

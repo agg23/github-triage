@@ -1,9 +1,21 @@
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "../shared/constants";
-import type { Item, ItemDetail, SyncResult, SyncStats } from "../shared/types";
+import type {
+  FetchedItem,
+  ItemDetail,
+  MergeableState,
+  SyncResult,
+  SyncStats,
+} from "../shared/types";
 import { db } from "./db";
 import { itemDetails, items, sources } from "./db/schema";
-import { fetchDetails, fetchSourceUpdatedSince, scopeOf } from "./github/fetch";
+import {
+  fetchByNodeIds,
+  fetchDetails,
+  fetchSourceUpdatedSince,
+  scopeOf,
+} from "./github/fetch";
+import { readSettings } from "./settings";
 
 let syncing = false;
 
@@ -21,6 +33,9 @@ const MANUAL_LOOKBACK_MS = 2 * HOUR_MS;
 /** How many existing items missing content will be fetched per run */
 const DETAIL_BACKFILL_LIMIT = 200;
 
+/** How many of your open pull requests get re-read for silent changes per run */
+const MINE_REFRESH_LIMIT = 200;
+
 const lastDeepSyncAt = new Map<number, number>();
 
 const upsertDetails = (details: ItemDetail[]) => {
@@ -32,12 +47,79 @@ const upsertDetails = (details: ItemDetail[]) => {
   }
 };
 
+interface MergeState {
+  mergeable: MergeableState | null;
+  conflictedSince: string | null;
+}
+
+/**
+ * A conflict is not an event: GitHub never says when one appeared, and it does not move the pull
+ * request's updatedAt. All we can do is compare against the mergeability we stored last time and
+ * stamp the transition if we witnessed it
+ */
+export const reconcileConflict = (
+  previous: MergeState | undefined,
+  incoming: MergeableState | null,
+  at: string,
+): MergeState => {
+  // An issue, or a pull request cached before we started asking for mergeability
+  if (incoming === null) {
+    return previous ?? { mergeable: null, conflictedSince: null };
+  }
+
+  // GitHub computes mergeability lazily, so the first read of a pull request usually answers
+  // UNKNOWN while it works. That is no news, not "no longer conflicting"
+  if (incoming === "UNKNOWN") {
+    return {
+      mergeable: previous?.mergeable ?? "UNKNOWN",
+      conflictedSince: previous?.conflictedSince ?? null,
+    };
+  }
+
+  if (incoming !== "CONFLICTING") {
+    return { mergeable: incoming, conflictedSince: null };
+  }
+
+  // Keep the original stamp, so a long-standing conflict does not look fresh on every sync
+  if (previous?.conflictedSince) {
+    return { mergeable: incoming, conflictedSince: previous.conflictedSince };
+  }
+
+  // Conflicting the first time we looked, or the first time we could tell: the flip happened
+  // outside our view, so we cannot honestly date it, let alone call it activity
+  const witnessed = previous?.mergeable === "MERGEABLE";
+
+  return { mergeable: incoming, conflictedSince: witnessed ? at : null };
+};
+
 /**
  * Write a single chunk of fetched GitHub data
  */
-const writePage = (fetched: Item[], details: ItemDetail[]) =>
+const writePage = (fetched: FetchedItem[], details: ItemDetail[]) =>
   db.transaction((tx) => {
-    for (const item of fetched) {
+    const pullRequestIds = fetched.flatMap((item) => (item.type === "pr" ? [item.id] : []));
+    const stored = new Map<string, MergeState>(
+      (pullRequestIds.length === 0
+        ? []
+        : tx
+            .select({
+              id: items.id,
+              mergeable: items.mergeable,
+              conflictedSince: items.conflictedSince,
+            })
+            .from(items)
+            .where(inArray(items.id, pullRequestIds))
+            .all()
+      ).map((row) => [row.id, { mergeable: row.mergeable, conflictedSince: row.conflictedSince }]),
+    );
+    const at = new Date().toISOString();
+
+    for (const fresh of fetched) {
+      const item = {
+        ...fresh,
+        ...reconcileConflict(stored.get(fresh.id), fresh.mergeable, at),
+      };
+
       tx.insert(items)
         .values(item)
         .onConflictDoUpdate({ target: items.id, set: { ...item, id: undefined } })
@@ -73,6 +155,47 @@ const backfillDetails = async (): Promise<number> => {
   upsertDetails(details);
 
   return details.length;
+};
+
+/**
+ * A pull request that starts conflicting produces no event and no updatedAt change, so the
+ * updated-since sync will never look at it again. Poll the ones you own directly instead
+ */
+const syncMine = async (): Promise<SyncStats | undefined> => {
+  const { me } = readSettings();
+
+  if (!me) {
+    return undefined;
+  }
+
+  const mine = db
+    .select({ id: items.id, sourceId: items.sourceId })
+    .from(items)
+    .where(and(eq(items.type, "pr"), eq(items.state, "OPEN"), eq(items.author, me)))
+    .limit(MINE_REFRESH_LIMIT)
+    .all();
+
+  if (mine.length === 0) {
+    return undefined;
+  }
+
+  const sourceById = new Map(mine.map((row) => [row.id, row.sourceId]));
+  const result = await fetchByNodeIds(
+    mine.map((row) => row.id),
+    (id) => sourceById.get(id) ?? 0,
+    writePage,
+  );
+
+  console.log(`[sync] author:${me}: re-read ${result.written} open pull requests`);
+
+  return {
+    // The pass spans every source, so it belongs to none of them
+    sourceId: 0,
+    scope: `author:${me}`,
+    upserted: result.written,
+    pages: result.pages,
+    rateLimitRemaining: result.rateLimitRemaining,
+  };
 };
 
 export const syncSource = async (
@@ -152,6 +275,16 @@ export const syncAll = async (manual = false): Promise<SyncResult> => {
         console.error(`[sync] FAILED ${message}`);
         errors.push(message);
       }
+    }
+
+    try {
+      const mineStats = await syncMine();
+
+      if (mineStats) {
+        stats.push(mineStats);
+      }
+    } catch (error) {
+      errors.push(`own pull requests: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     try {

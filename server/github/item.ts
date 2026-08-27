@@ -1,7 +1,7 @@
 import type {
   ActionKind,
   DetailComment,
-  Item,
+  FetchedItem,
   ItemDetail,
   ItemGitHubState,
 } from "../../shared/types";
@@ -122,7 +122,11 @@ export const toDetail = (node: RawDetailNode): ItemDetail => ({
   fetchedAt: new Date().toISOString(),
 });
 
-export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number): Item => {
+export const toItem = (
+  node: RawNode,
+  isPullRequest: boolean,
+  sourceId: number,
+): FetchedItem => {
   const events = eventsOf(node);
 
   // Last non-bot entry
@@ -166,6 +170,9 @@ export const toItem = (node: RawNode, isPullRequest: boolean, sourceId: number):
     lastActivityAt: last.at,
     lastActionKind: last.kind,
     lastCommentUrl: newestLinkable?.url ?? null,
+    mergeable: node.mergeable ?? null,
+    // Only writePage can decide this, since it needs the mergeability we stored last time
+    conflictedSince: null,
     stackNumber: node.stack?.number ?? null,
     stackSize: node.stack?.size ?? null,
     stackPosition: node.stackEntry?.position ?? null,

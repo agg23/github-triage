@@ -76,7 +76,7 @@ export const comparatorFor =
     } else if (sort === "created") {
       return second.createdAt.localeCompare(first.createdAt);
     } else {
-      return second.lastActivityAt.localeCompare(first.lastActivityAt);
+      return second.activityAt.localeCompare(first.activityAt);
     }
   };
 
