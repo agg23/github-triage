@@ -1,4 +1,4 @@
-import { CommentIcon, FileDiffIcon } from "@primer/octicons-react";
+import { CommentIcon, FileDiffIcon, RepoPushIcon } from "@primer/octicons-react";
 import { Label, type LabelProps, Overlay, RelativeTime, Spinner } from "@primer/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailComment, ItemDetail } from "../../shared/types";
@@ -198,6 +198,21 @@ const CommentExcerpt: React.FC<CommentExcerptProps> = ({ comment }) => {
   );
 };
 
+interface PushExcerptProps {
+  item: TriageItem;
+}
+
+const PushExcerpt: React.FC<PushExcerptProps> = ({ item }) => (
+  <div className={styles.comment}>
+    <div className={`${rowStyles.meta} ${styles.commentMeta}`}>
+      <RepoPushIcon size={12} />
+      <ActorLink login={item.lastActor} actorClass={item.lastActorClass} />
+      <span>pushed</span>
+      <RelativeTime datetime={item.lastActivityAt} />
+    </div>
+  </div>
+);
+
 interface DiffStatProps {
   detail: ItemDetail;
 }
@@ -222,10 +237,11 @@ const DiffStat: React.FC<DiffStatProps> = ({ detail }) => {
 };
 
 interface CardBodyProps {
+  item: TriageItem;
   loaded: Loaded | undefined;
 }
 
-const CardBody: React.FC<CardBodyProps> = ({ loaded }) => {
+const CardBody: React.FC<CardBodyProps> = ({ item, loaded }) => {
   if (!loaded) {
     return (
       <div className={styles.center}>
@@ -245,6 +261,7 @@ const CardBody: React.FC<CardBodyProps> = ({ loaded }) => {
     (comment) => classify(comment.author, comment.authorType) !== "bot",
   );
   const shown = human.slice(-PREVIEW_COMMENTS);
+  const pushed = item.lastActionKind === "pushed";
 
   return (
     <>
@@ -263,6 +280,7 @@ const CardBody: React.FC<CardBodyProps> = ({ loaded }) => {
           {shown.map((comment) => (
             <CommentExcerpt key={`${comment.author}-${comment.createdAt}`} comment={comment} />
           ))}
+          {pushed && <PushExcerpt item={item} />}
         </div>
       )}
     </>
@@ -408,7 +426,7 @@ export const ItemPreview: React.FC<ItemPreviewProps> = ({ item, className, child
           </div>
 
           <div ref={contentRef} className={styles.content}>
-            <CardBody loaded={loaded} />
+            <CardBody item={item} loaded={loaded} />
           </div>
           {overflowed && <div className={styles.footer}>…</div>}
         </Overlay>
